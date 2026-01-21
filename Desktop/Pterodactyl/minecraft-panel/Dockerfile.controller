@@ -1,0 +1,86 @@
+# AetherPanel Controller Dockerfile
+FROM node:18-alpine AS builder
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    postgresql-client \
+    redis \
+    git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY prisma/ ./prisma/
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+COPY controller/ ./controller/
+COPY daemon/ ./daemon/
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    redis \
+    openssh-client \
+    docker \
+    screen \
+    tmux \
+    curl \
+    unzip
+
+# Create app directory
+WORKDIR /app
+
+# Create necessary directories
+RUN mkdir -p servers backups temp logs
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src/proto ./dist/src/proto
+
+# Copy configuration files
+COPY config.env ./
+COPY docker-compose.yml ./
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S minecraft -u 1001
+
+# Set permissions
+RUN chown -R minecraft:nodejs /app
+USER minecraft
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]

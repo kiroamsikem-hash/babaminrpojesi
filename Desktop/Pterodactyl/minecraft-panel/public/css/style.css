@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Skyport theme */
+.bg-dark-primary {
+  background-color: #09090b;
+}
+
+.bg-dark-secondary {
+  background-color: #121214;
+}
+
+.glow-electric {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.glow-danger {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Terminal styles */
+.terminal-container {
+  background-color: #000;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  overflow: hidden;
+}
+
+.terminal-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #1a1a1a;
+  border-radius: 6px;
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-red { background-color: #ff5f57; }
+.dot-yellow { background-color: #ffbd2e; }
+.dot-green { background-color: #28ca42; }
+
+.terminal-title {
+  color: #888;
+  font-size: 12px;
+}
+
+/* File manager styles */
+.file-tree {
+  background-color: #121214;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background-color: #1a1a1a;
+}
+
+.file-item.selected {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.file-icon {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+/* Monaco Editor customizations */
+.monaco-editor {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Loading animations */
+@keyframes pulse-electric {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+}
+
+.glow-pulse {
+  animation: pulse-electric 2s infinite;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #121214;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #8b5cf6;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+/* Status indicators */
+.status-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.status-indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-online::before { background-color: #10b981; }
+.status-offline::before { background-color: #ef4444; }
+.status-starting::before { background-color: #f59e0b; }
+.status-stopping::before { background-color: #f59e0b; }
+
+/* Server card animations */
+.server-card {
+  transition: all 0.3s ease;
+}
+
+.server-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar animations */
+.sidebar {
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 64px;
+}
+
+.sidebar-item {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-item span {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+/* Notification styles */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 16px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transform: translateX(400px);
+  transition: transform 0.3s ease;
+}
+
+.notification.show {
+  transform: translateX(0);
+}
+
+.notification-success { background-color: #10b981; }
+.notification-error { background-color: #ef4444; }
+.notification-warning { background-color: #f59e0b; }
+.notification-info { background-color: #3b82f6; }

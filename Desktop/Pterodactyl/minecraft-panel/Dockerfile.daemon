@@ -1,0 +1,115 @@
+# AetherPanel Daemon Dockerfile
+FROM node:18-alpine AS builder
+
+# Install system dependencies for server management
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    openjdk17-jre-headless \
+    screen \
+    tmux \
+    openssh \
+    openssh-sftp-server \
+    curl \
+    wget \
+    unzip \
+    bash \
+    docker \
+    docker-compose \
+    procps \
+    htop \
+    vim \
+    nano \
+    git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+COPY daemon/ ./daemon/
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    openjdk17-jre-headless \
+    screen \
+    tmux \
+    openssh \
+    openssh-sftp-server \
+    curl \
+    wget \
+    unzip \
+    bash \
+    docker \
+    docker-compose \
+    procps \
+    htop \
+    vim \
+    nano \
+    git \
+    supervisor
+
+# Create app directory
+WORKDIR /app
+
+# Create necessary directories
+RUN mkdir -p servers backups temp logs sftp chroot
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/daemon ./dist/daemon
+
+# Copy configuration
+COPY config.env ./
+
+# Setup SSH/SFTP
+RUN ssh-keygen -A && \
+    echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "Subsystem sftp internal-sftp" >> /etc/ssh/sshd_config && \
+    echo "Match User minecraft" >> /etc/ssh/sshd_config && \
+    echo "    ChrootDirectory /app/sftp" >> /etc/ssh/sshd_config && \
+    echo "    ForceCommand internal-sftp" >> /etc/ssh/sshd_config && \
+    echo "    AllowTcpForwarding no" >> /etc/ssh/sshd_config
+
+# Create minecraft user for SFTP
+RUN addgroup -g 1001 -S minecraft && \
+    adduser -S minecraft -u 1001 -G minecraft && \
+    mkdir -p /app/sftp/minecraft && \
+    chown minecraft:minecraft /app/sftp/minecraft
+
+# Setup supervisor for process management
+COPY supervisord.conf /etc/supervisord.conf
+
+# Set permissions
+RUN chown -R minecraft:minecraft /app
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose ports
+EXPOSE 8080 2022
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

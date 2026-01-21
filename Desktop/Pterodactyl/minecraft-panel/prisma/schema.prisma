@@ -1,0 +1,332 @@
+// Prisma schema for Minecraft Panel
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  email       String   @unique
+  password    String
+  role        UserRole @default(USER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  lastLogin   DateTime?
+  avatar      String?
+
+  // Minecraft specific user data
+  minecraftUUID String? @unique
+  playerData   PlayerData?
+  inventory    InventoryItem[]
+  skins        Skin[]
+  servers      Server[]
+
+  @@map("users")
+}
+
+model PlayerData {
+  id          String @id @default(cuid())
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Health and game stats
+  health      Float  @default(20.0)
+  maxHealth   Float  @default(20.0)
+  hunger      Float  @default(20.0)
+  experience  Float  @default(0.0)
+  level       Int    @default(0)
+
+  // Position data
+  world       String?
+  x           Float?
+  y           Float?
+  z           Float?
+
+  // Game mode and status
+  gameMode    String @default("survival")
+  isOnline    Boolean @default(false)
+  lastSeen    DateTime?
+
+  // Statistics
+  playTime    Int    @default(0) // minutes
+  deaths      Int    @default(0)
+  kills       Int    @default(0)
+  blocksMined Int    @default(0)
+  blocksPlaced Int    @default(0)
+
+  @@map("player_data")
+}
+
+model InventoryItem {
+  id          String @id @default(cuid())
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  itemId      String
+  itemType    String // weapon, tool, food, block, etc.
+  itemName    String
+  quantity    Int    @default(1)
+  durability  Int?
+  enchantments Json? // JSON object for enchantments
+  customName  String?
+  lore        String?
+
+  slot        Int? // Inventory slot position
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("inventory_items")
+}
+
+model Skin {
+  id          String @id @default(cuid())
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  type        SkinType @default(DEFAULT)
+  imageUrl    String
+  isActive    Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("skins")
+}
+
+model Server {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User   @relation(fields: [ownerId], references: [id])
+  nodeId      String
+  node        Node   @relation(fields: [nodeId], references: [id])
+
+  gameType    GameType @default(MINECRAFT_JAVA)
+  version     String   @default("1.20.1")
+  status      ServerStatus @default(STOPPED)
+
+  port        Int      @unique
+  memory      String   @default("2048M")
+  cpu         Int      @default(100)
+  disk        Int      @default(10240) // MB
+
+  jarFile     String   @default("server.jar")
+  javaArgs    String   @default("")
+  serverProperties Json @default("{}")
+
+  plugins     Plugin[]
+  mods        Mod[]
+
+  players     ServerPlayer[]
+  backups     Backup[]
+
+  createdAt   DateTime @default(now())
+  lastStarted DateTime?
+  uptime      Int      @default(0)
+
+  stats       ServerStats?
+
+  @@map("servers")
+}
+
+model ServerStats {
+  id        String @id @default(cuid())
+  serverId  String @unique
+  server    Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  cpuUsage    Float @default(0.0)
+  memoryUsage Float @default(0.0)
+  networkIn   Float @default(0.0)
+  networkOut  Float @default(0.0)
+  tps         Float @default(20.0)
+
+  playerCount Int   @default(0)
+  maxPlayers  Int   @default(20)
+
+  updatedAt   DateTime @updatedAt
+
+  @@map("server_stats")
+}
+
+model ServerPlayer {
+  id        String @id @default(cuid())
+  serverId  String
+  server    Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  username  String
+  uuid      String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  @@map("server_players")
+}
+
+model Plugin {
+  id          String @id @default(cuid())
+  serverId    String
+  server      Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  name        String
+  version     String
+  fileName    String
+  author      String?
+  description String?
+  isEnabled   Boolean @default(true)
+
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("plugins")
+}
+
+model Mod {
+  id          String @id @default(cuid())
+  serverId    String
+  server      Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  name        String
+  version     String
+  fileName    String
+  modLoader   ModLoader
+  author      String?
+  description String?
+  isEnabled   Boolean @default(true)
+
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("mods")
+}
+
+model Node {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  host        String
+  port        Int     @default(22)
+  username    String
+  password    String
+  sshKey      String?
+
+  status      NodeStatus @default(OFFLINE)
+  location    String?
+
+  maxMemory   Int // MB
+  maxDisk     Int // MB
+  maxServers  Int
+
+  usedMemory  Int @default(0)
+  usedDisk    Int @default(0)
+  serverCount Int @default(0)
+
+  systemInfo  Json?
+  portRange   Json // { start: number, end: number }
+
+  servers     Server[]
+
+  createdAt   DateTime @default(now())
+  lastPing    DateTime?
+
+  @@map("nodes")
+}
+
+model Backup {
+  id          String @id @default(cuid())
+  serverId    String
+  server      Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  name        String
+  fileName    String
+  size        Int // bytes
+  checksum    String?
+
+  createdAt   DateTime @default(now())
+
+  @@map("backups")
+}
+
+model PluginRepository {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  url         String @unique
+  apiKey      String?
+
+  isActive    Boolean @default(true)
+  lastSync    DateTime?
+
+  plugins     PluginInfo[]
+
+  @@map("plugin_repositories")
+}
+
+model PluginInfo {
+  id            String @id @default(cuid())
+  repositoryId  String
+  repository    PluginRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  name          String
+  description   String?
+  author        String?
+  versions      PluginVersion[]
+
+  @@map("plugin_info")
+}
+
+model PluginVersion {
+  id         String @id @default(cuid())
+  pluginId   String
+  plugin     PluginInfo @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  version    String
+  downloadUrl String
+  fileSize   Int?
+  checksum   String?
+
+  minecraftVersions String[] // Compatible Minecraft versions
+  dependencies Json? // Required dependencies
+
+  @@map("plugin_versions")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SkinType {
+  DEFAULT
+  PREMIUM
+  CUSTOM
+}
+
+enum GameType {
+  MINECRAFT_JAVA
+  MINECRAFT_BEDROCK
+}
+
+enum ServerStatus {
+  STOPPED
+  STARTING
+  RUNNING
+  STOPPING
+  ERROR
+  MAINTENANCE
+}
+
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+enum ModLoader {
+  FORGE
+  FABRIC
+  NEOFORGE
+}

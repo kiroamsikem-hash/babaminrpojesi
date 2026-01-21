@@ -1,0 +1,372 @@
+syntax = "proto3";
+
+package minecraft.server;
+
+option java_multiple_files = true;
+option java_package = "com.minecraft.panel.server";
+option java_outer_classname = "ServerProto";
+
+// Server management service
+service ServerService {
+  rpc CreateServer(CreateServerRequest) returns (ServerResponse);
+  rpc GetServer(GetServerRequest) returns (ServerResponse);
+  rpc UpdateServer(UpdateServerRequest) returns (ServerResponse);
+  rpc DeleteServer(DeleteServerRequest) returns (DeleteResponse);
+  rpc StartServer(StartServerRequest) returns (ServerResponse);
+  rpc StopServer(StopServerRequest) returns (ServerResponse);
+  rpc RestartServer(RestartServerRequest) returns (ServerResponse);
+  rpc GetServerStats(GetServerStatsRequest) returns (ServerStatsResponse);
+  rpc SendCommand(SendCommandRequest) returns (CommandResponse);
+}
+
+// Plugin management service
+service PluginService {
+  rpc InstallPlugin(InstallPluginRequest) returns (PluginResponse);
+  rpc UninstallPlugin(UninstallPluginRequest) returns (PluginResponse);
+  rpc UpdatePlugin(UpdatePluginRequest) returns (PluginResponse);
+  rpc GetInstalledPlugins(GetPluginsRequest) returns (PluginsResponse);
+  rpc EnablePlugin(EnablePluginRequest) returns (PluginResponse);
+  rpc DisablePlugin(DisablePluginRequest) returns (PluginResponse);
+}
+
+// Mod management service
+service ModService {
+  rpc InstallMod(InstallModRequest) returns (ModResponse);
+  rpc UninstallMod(UninstallModRequest) returns (ModResponse);
+  rpc UpdateMod(UpdateModRequest) returns (ModResponse);
+  rpc GetInstalledMods(GetModsRequest) returns (ModsResponse);
+  rpc EnableMod(EnableModRequest) returns (ModResponse);
+  rpc DisableMod(DisableModRequest) returns (ModResponse);
+}
+
+// File management service
+service FileService {
+  rpc ListFiles(ListFilesRequest) returns (FilesResponse);
+  rpc ReadFile(ReadFileRequest) returns (FileContentResponse);
+  rpc WriteFile(WriteFileRequest) returns (FileResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (FileResponse);
+  rpc UploadFile(stream UploadFileRequest) returns (UploadResponse);
+  rpc DownloadFile(DownloadFileRequest) returns (stream FileChunk);
+}
+
+// Backup service
+service BackupService {
+  rpc CreateBackup(CreateBackupRequest) returns (BackupResponse);
+  rpc RestoreBackup(RestoreBackupRequest) returns (BackupResponse);
+  rpc ListBackups(ListBackupsRequest) returns (BackupsResponse);
+  rpc DeleteBackup(DeleteBackupRequest) returns (BackupResponse);
+}
+
+// Messages
+message CreateServerRequest {
+  string name = 1;
+  string description = 2;
+  string owner_id = 3;
+  string node_id = 4;
+  string game_type = 5;
+  string version = 6;
+  string memory = 7;
+  int32 port = 8;
+  string jar_file = 9;
+  string java_args = 10;
+  string server_properties = 11;
+}
+
+message GetServerRequest {
+  string server_id = 1;
+}
+
+message UpdateServerRequest {
+  string server_id = 1;
+  string name = 2;
+  string description = 3;
+  string memory = 4;
+  string version = 5;
+  string server_properties = 6;
+}
+
+message DeleteServerRequest {
+  string server_id = 1;
+}
+
+message StartServerRequest {
+  string server_id = 1;
+}
+
+message StopServerRequest {
+  string server_id = 1;
+}
+
+message RestartServerRequest {
+  string server_id = 1;
+}
+
+message GetServerStatsRequest {
+  string server_id = 1;
+}
+
+message SendCommandRequest {
+  string server_id = 1;
+  string command = 2;
+}
+
+message ServerResponse {
+  bool success = 1;
+  string message = 2;
+  ServerData server = 3;
+}
+
+message DeleteResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ServerStatsResponse {
+  bool success = 1;
+  ServerStats stats = 2;
+}
+
+message CommandResponse {
+  bool success = 1;
+  string message = 2;
+  string output = 3;
+}
+
+message ServerData {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string owner_id = 4;
+  string node_id = 5;
+  string game_type = 6;
+  string version = 7;
+  string status = 8;
+  string memory = 9;
+  int32 port = 10;
+  string jar_file = 11;
+  string java_args = 12;
+  string server_properties = 13;
+  int64 created_at = 14;
+  int64 last_started = 15;
+  int32 uptime = 16;
+}
+
+message ServerStats {
+  double cpu_usage = 1;
+  double memory_usage = 2;
+  double network_in = 3;
+  double network_out = 4;
+  double tps = 5;
+  int32 player_count = 6;
+  int32 max_players = 7;
+  int64 uptime = 8;
+}
+
+// Plugin messages
+message InstallPluginRequest {
+  string server_id = 1;
+  string plugin_id = 2;
+  string version = 3;
+}
+
+message UninstallPluginRequest {
+  string server_id = 1;
+  string plugin_name = 2;
+}
+
+message UpdatePluginRequest {
+  string server_id = 1;
+  string plugin_name = 2;
+  string new_version = 3;
+}
+
+message GetPluginsRequest {
+  string server_id = 1;
+}
+
+message EnablePluginRequest {
+  string server_id = 1;
+  string plugin_name = 2;
+}
+
+message DisablePluginRequest {
+  string server_id = 1;
+  string plugin_name = 2;
+}
+
+message PluginResponse {
+  bool success = 1;
+  string message = 2;
+  PluginData plugin = 3;
+}
+
+message PluginsResponse {
+  bool success = 1;
+  repeated PluginData plugins = 2;
+}
+
+message PluginData {
+  string name = 1;
+  string version = 2;
+  string file_name = 3;
+  string author = 4;
+  string description = 5;
+  bool is_enabled = 6;
+  int64 installed_at = 7;
+}
+
+// Mod messages
+message InstallModRequest {
+  string server_id = 1;
+  string mod_id = 2;
+  string version = 3;
+  string mod_loader = 4;
+}
+
+message UninstallModRequest {
+  string server_id = 1;
+  string mod_name = 2;
+}
+
+message UpdateModRequest {
+  string server_id = 1;
+  string mod_name = 2;
+  string new_version = 3;
+}
+
+message GetModsRequest {
+  string server_id = 1;
+}
+
+message EnableModRequest {
+  string server_id = 1;
+  string mod_name = 2;
+}
+
+message DisableModRequest {
+  string server_id = 1;
+  string mod_name = 2;
+}
+
+message ModResponse {
+  bool success = 1;
+  string message = 2;
+  ModData mod = 3;
+}
+
+message ModsResponse {
+  bool success = 1;
+  repeated ModData mods = 2;
+}
+
+message ModData {
+  string name = 1;
+  string version = 2;
+  string file_name = 3;
+  string mod_loader = 4;
+  string author = 5;
+  string description = 6;
+  bool is_enabled = 7;
+  int64 installed_at = 8;
+}
+
+// File messages
+message ListFilesRequest {
+  string server_id = 1;
+  string path = 2;
+}
+
+message ReadFileRequest {
+  string server_id = 1;
+  string path = 2;
+}
+
+message WriteFileRequest {
+  string server_id = 1;
+  string path = 2;
+  string content = 3;
+}
+
+message DeleteFileRequest {
+  string server_id = 1;
+  string path = 2;
+}
+
+message UploadFileRequest {
+  string server_id = 1;
+  string path = 2;
+  string file_name = 3;
+  bytes chunk = 4;
+}
+
+message FilesResponse {
+  bool success = 1;
+  repeated FileData files = 2;
+}
+
+message FileContentResponse {
+  bool success = 1;
+  string content = 2;
+}
+
+message FileResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UploadResponse {
+  bool success = 1;
+  string message = 2;
+  string file_path = 3;
+}
+
+message FileChunk {
+  bytes data = 1;
+}
+
+message FileData {
+  string name = 1;
+  string path = 2;
+  string type = 3;
+  int64 size = 4;
+  int64 modified = 5;
+}
+
+// Backup messages
+message CreateBackupRequest {
+  string server_id = 1;
+  string name = 2;
+}
+
+message RestoreBackupRequest {
+  string server_id = 1;
+  string backup_id = 2;
+}
+
+message ListBackupsRequest {
+  string server_id = 1;
+}
+
+message DeleteBackupRequest {
+  string server_id = 1;
+  string backup_id = 2;
+}
+
+message BackupResponse {
+  bool success = 1;
+  string message = 2;
+  BackupData backup = 3;
+}
+
+message BackupsResponse {
+  bool success = 1;
+  repeated BackupData backups = 2;
+}
+
+message BackupData {
+  string id = 1;
+  string name = 2;
+  string file_name = 3;
+  int64 size = 4;
+  int64 created_at = 5;
+}

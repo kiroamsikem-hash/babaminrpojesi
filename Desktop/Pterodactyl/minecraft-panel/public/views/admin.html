@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Minecraft Panel</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-cube"></i>
+                <h1>Admin Panel</h1>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/admin" class="nav-link active">Admin</a>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </nav>
+        </header>
+
+        <main class="main">
+            <div class="admin-header">
+                <h2>Administration Dashboard</h2>
+            </div>
+
+            <!-- Admin Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalUsers">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalServers">0</h3>
+                        <p>Total Servers</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalNodes">0</h3>
+                        <p>Total Nodes</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-memory"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="memoryUsage">0%</h3>
+                        <p>Memory Usage</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Navigation Tabs -->
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="users">Users</button>
+                <button class="tab-btn" data-tab="servers">Servers</button>
+                <button class="tab-btn" data-tab="nodes">Nodes</button>
+                <button class="tab-btn" data-tab="settings">Settings</button>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="admin-tab-content active">
+                <div class="tab-header">
+                    <h3>User Management</h3>
+                    <button id="addUserBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add User
+                    </button>
+                </div>
+                <div class="data-table">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Servers Tab -->
+            <div id="serversTab" class="admin-tab-content">
+                <div class="tab-header">
+                    <h3>Server Management</h3>
+                </div>
+                <div class="data-table">
+                    <table id="serversTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Owner</th>
+                                <th>Node</th>
+                                <th>Status</th>
+                                <th>Players</th>
+                                <th>Version</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="serversTableBody">
+                            <!-- Servers will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Nodes Tab -->
+            <div id="nodesTab" class="admin-tab-content">
+                <div class="tab-header">
+                    <h3>Node Management</h3>
+                    <button id="addNodeBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Node
+                    </button>
+                </div>
+                <div class="data-table">
+                    <table id="nodesTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Host</th>
+                                <th>Status</th>
+                                <th>Memory</th>
+                                <th>Disk</th>
+                                <th>Servers</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nodesTableBody">
+                            <!-- Nodes will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settingsTab" class="admin-tab-content">
+                <div class="tab-header">
+                    <h3>System Settings</h3>
+                </div>
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <h4>Database</h4>
+                        <p>Configure database connection settings</p>
+                        <button class="btn btn-secondary">Configure</button>
+                    </div>
+                    <div class="setting-card">
+                        <h4>Security</h4>
+                        <p>Manage security settings and policies</p>
+                        <button class="btn btn-secondary">Configure</button>
+                    </div>
+                    <div class="setting-card">
+                        <h4>Backup</h4>
+                        <p>Configure automatic backups</p>
+                        <button class="btn btn-secondary">Configure</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New User</h2>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="userUsername">Username</label>
+                    <input type="text" id="userUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="userEmail">Email</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">Password</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="userRole">Role</label>
+                    <select id="userRole" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Create User</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Node Modal -->
+    <div id="addNodeModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2>Add New Node</h2>
+            <form id="addNodeForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nodeName">Node Name</label>
+                        <input type="text" id="nodeName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeHost">Host</label>
+                        <input type="text" id="nodeHost" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nodePort">SSH Port</label>
+                        <input type="number" id="nodePort" value="22" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeUsername">Username</label>
+                        <input type="text" id="nodeUsername" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="nodePassword">Password</label>
+                    <input type="password" id="nodePassword" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nodeMaxMemory">Max Memory (MB)</label>
+                        <input type="number" id="nodeMaxMemory" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeMaxDisk">Max Disk (MB)</label>
+                        <input type="number" id="nodeMaxDisk" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nodeMaxServers">Max Servers</label>
+                        <input type="number" id="nodeMaxServers" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeLocation">Location</label>
+                        <input type="text" id="nodeLocation" placeholder="Optional">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Node</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

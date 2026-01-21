@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Details - Minecraft Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+    <script src="https://unpkg.com/@xterm/addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://unpkg.com/@xterm/addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-primary': '#09090b',
+                        'dark-secondary': '#121214',
+                        'electric-purple': '#8b5cf6',
+                        'success-green': '#10b981',
+                        'danger-red': '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-primary text-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar bg-dark-secondary w-64 h-full flex flex-col transition-all duration-300">
+            <!-- Logo -->
+            <div class="p-6 border-b border-gray-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-electric-purple rounded-lg flex items-center justify-center glow-electric">
+                        <i class="fas fa-server text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-white">Server Panel</h1>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="/dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-arrow-left w-5"></i>
+                    <span>Back to Dashboard</span>
+                </a>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="overviewTab">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Overview</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="consoleTab">
+                    <i class="fas fa-terminal w-5"></i>
+                    <span>Console</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="filesTab">
+                    <i class="fas fa-folder w-5"></i>
+                    <span>File Manager</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="pluginsTab">
+                    <i class="fas fa-puzzle-piece w-5"></i>
+                    <span>Plugins</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="modsTab">
+                    <i class="fas fa-cubes w-5"></i>
+                    <span>Mods</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="backupsTab">
+                    <i class="fas fa-archive w-5"></i>
+                    <span>Backups</span>
+                </div>
+                <div class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer" id="settingsTab">
+                    <i class="fas fa-cog w-5"></i>
+                    <span>Settings</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-dark-secondary border-b border-gray-700 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button id="sidebarToggle" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-semibold text-white" id="serverName">Loading...</h2>
+                            <p class="text-gray-400 text-sm" id="serverStatus">Connecting...</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="startBtn" class="bg-success-green hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors hidden">
+                            <i class="fas fa-play"></i>
+                            <span>Start</span>
+                        </button>
+                        <button id="stopBtn" class="bg-danger-red hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors hidden">
+                            <i class="fas fa-stop"></i>
+                            <span>Stop</span>
+                        </button>
+                        <button id="restartBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <i class="fas fa-redo"></i>
+                            <span>Restart</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tab Content -->
+            <main class="flex-1 overflow-auto">
+                <!-- Overview Tab -->
+                <div id="overviewContent" class="tab-content p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <!-- Server Stats -->
+                        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-dark-secondary rounded-lg p-6 border border-gray-700">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold text-white">Performance</h3>
+                                    <i class="fas fa-chart-line text-electric-purple"></i>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">CPU Usage</span>
+                                        <span class="text-white" id="cpuUsage">0%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Memory Usage</span>
+                                        <span class="text-white" id="memoryUsage">0 MB</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">TPS</span>
+                                        <span class="text-white" id="tps">20.0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-dark-secondary rounded-lg p-6 border border-gray-700">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold text-white">Players</h3>
+                                    <i class="fas fa-users text-success-green"></i>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Online</span>
+                                        <span class="text-white" id="playersOnline">0</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Max Players</span>
+                                        <span class="text-white" id="maxPlayers">20</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Uptime</span>
+                                        <span class="text-white" id="uptime">00:00:00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-dark-secondary rounded-lg p-6 border border-gray-700">
+                            <h3 class="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                            <div class="space-y-3">
+                                <button class="w-full bg-electric-purple hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                                    <i class="fas fa-save"></i>
+                                    <span>Save World</span>
+                                </button>
+                                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                                    <i class="fas fa-broadcast-tower"></i>
+                                    <span>Broadcast Message</span>
+                                </button>
+                                <button class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Schedule Restart</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Players List -->
+                    <div class="bg-dark-secondary rounded-lg p-6 border border-gray-700">
+                        <h3 class="text-lg font-semibold text-white mb-4">Online Players</h3>
+                        <div id="playersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Players will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console Tab -->
+                <div id="consoleContent" class="tab-content p-6 hidden">
+                    <div class="bg-dark-secondary rounded-lg border border-gray-700 h-96 flex flex-col">
+                        <!-- Terminal Toolbar -->
+                        <div class="terminal-toolbar">
+                            <div class="terminal-dots">
+                                <div class="dot dot-red"></div>
+                                <div class="dot dot-yellow"></div>
+                                <div class="dot dot-green"></div>
+                            </div>
+                            <div class="terminal-title">Minecraft Server Console</div>
+                            <div class="flex space-x-2">
+                                <button id="clearConsole" class="text-gray-400 hover:text-white transition-colors px-2 py-1 rounded text-sm">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Terminal Content -->
+                        <div id="terminal" class="flex-1 p-4 bg-black text-green-400 font-mono text-sm overflow-auto custom-scrollbar">
+                            <!-- Xterm.js terminal will be initialized here -->
+                        </div>
+
+                        <!-- Console Input -->
+                        <div class="border-t border-gray-700 p-4">
+                            <div class="flex space-x-2">
+                                <span class="text-green-400 font-mono text-lg">$</span>
+                                <input type="text"
+                                       id="consoleInput"
+                                       placeholder="Enter command..."
+                                       class="flex-1 bg-transparent text-green-400 font-mono border-none outline-none"
+                                       onkeypress="handleConsoleKeypress(event)">
+                                <button onclick="sendConsoleCommand()"
+                                        class="bg-electric-purple hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Send
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plugins Tab -->
+                <div id="pluginsContent" class="tab-content p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white">Plugin Management</h3>
+                        <button class="bg-electric-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors glow-electric">
+                            <i class="fas fa-plus"></i>
+                            <span>Install Plugin</span>
+                        </button>
+                    </div>
+
+                    <div id="pluginsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Plugins will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Mods Tab -->
+                <div id="modsContent" class="tab-content p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white">Mod Management</h3>
+                        <button class="bg-electric-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors glow-electric">
+                            <i class="fas fa-plus"></i>
+                            <span>Install Mod</span>
+                        </button>
+                    </div>
+
+                    <div id="modsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Mods will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Backups Tab -->
+                <div id="backupsContent" class="tab-content p-6 hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-white">Backup Management</h3>
+                        <button id="createBackupBtn" class="bg-electric-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors glow-electric">
+                            <i class="fas fa-plus"></i>
+                            <span>Create Backup</span>
+                        </button>
+                    </div>
+
+                    <div id="backupsList" class="space-y-4">
+                        <!-- Backups will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settingsContent" class="tab-content p-6 hidden">
+                    <div class="max-w-2xl">
+                        <h3 class="text-lg font-semibold text-white mb-6">Server Settings</h3>
+
+                        <div class="space-y-6">
+                            <!-- Server Properties -->
+                            <div class="bg-dark-secondary rounded-lg p-6 border border-gray-700">
+                                <h4 class="text-md font-semibold text-white mb-4">Server Properties</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Server Name</label>
+                                        <input type="text" id="serverNameInput" class="w-full bg-dark-primary border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-electric-purple">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">MOTD</label>
+                                        <input type="text" id="motdInput" class="w-full bg-dark-primary border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-electric-purple">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Max Players</label>
+                                        <input type="number" id="maxPlayersInput" class="w-full bg-dark-primary border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-electric-purple">
+                                    </div>
+                                </div>
+                                <button class="mt-4 bg-electric-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.0/socket.io.js"></script>
+    <script src="/js/server.js"></script>
+</body>
+</html>

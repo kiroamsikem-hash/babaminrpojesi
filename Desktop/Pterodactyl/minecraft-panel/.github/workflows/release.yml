@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm run test:coverage
+
+    - name: Build application
+      run: npm run build
+
+    - name: Create release archive
+      run: |
+        tar -czf minecraft-panel-${{ github.ref_name }}.tar.gz \
+          --exclude='node_modules' \
+          --exclude='.git' \
+          --exclude='*.log' \
+          --exclude='servers' \
+          --exclude='backups' \
+          --exclude='temp' \
+          --exclude='uploads' \
+          .
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          ## Changes
+
+          ### 🚀 New Features
+          - Enterprise-grade Minecraft server management
+          - Docker containerization with security isolation
+          - Plugin/Mod installer with dependency resolution
+          - Real-time monitoring with InfluxDB
+          - SFTP server with chroot jails
+          - AWS S3 backup integration
+
+          ### 🔧 Improvements
+          - TypeScript migration for better code quality
+          - Fastify framework for 2-3x performance boost
+          - PostgreSQL + Redis for scalable data management
+          - gRPC for microservices communication
+          - Comprehensive testing with Jest
+          - Automated CI/CD with GitHub Actions
+
+          ### 🐛 Bug Fixes
+          - Fixed memory leaks in daemon service
+          - Improved error handling across all modules
+          - Enhanced security validations
+
+        draft: false
+        prerelease: false
+
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./minecraft-panel-${{ github.ref_name }}.tar.gz
+        asset_name: minecraft-panel-${{ github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
+
+  docker-release:
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.controller
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-panel-controller:latest
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-panel-controller:${{ github.ref_name }}
+
+    - name: Build and push Daemon image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.daemon
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-panel-daemon:latest
+          ${{ secrets.DOCKER_USERNAME }}/minecraft-panel-daemon:${{ github.ref_name }}
+
+  deploy-demo:
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.ref == 'refs/heads/main'
+    environment: demo
+
+    steps:
+    - name: Deploy to demo environment
+      run: |
+        echo "🚀 Deploying ${{ github.ref_name }} to demo environment"
+        # Add your demo deployment commands here
+        # Example: Update demo server via SSH

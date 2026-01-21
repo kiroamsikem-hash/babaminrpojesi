@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Main Controller (Web Interface)
+  controller:
+    build:
+      context: .
+      dockerfile: Dockerfile.controller
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/minecraft_panel
+      - REDIS_URL=redis://redis:6379
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=minecraft
+      - INFLUXDB_BUCKET=minecraft_metrics
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATA_ENCRYPTION_KEY=${DATA_ENCRYPTION_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - influxdb
+    volumes:
+      - ./servers:/app/servers
+      - ./backups:/app/backups
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+  # Daemon (Server Management)
+  daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile.daemon
+    ports:
+      - "8080:8080"
+      - "2022:2022"  # SFTP
+    environment:
+      - DAEMON_PORT=8080
+      - SFTP_PORT=2022
+    volumes:
+      - ./servers:/app/servers
+      - ./backups:/app/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+    privileged: true
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=minecraft_panel
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+  # InfluxDB Metrics
+  influxdb:
+    image: influxdb:2.7-alpine
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password
+      - DOCKER_INFLUXDB_INIT_ORG=minecraft
+      - DOCKER_INFLUXDB_INIT_BUCKET=aetherpanel_metrics
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - controller
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+  # Monitoring (Optional)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - minecraft-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  influxdb_config:
+  grafana_data:
+
+networks:
+  minecraft-network:
+    driver: bridge
