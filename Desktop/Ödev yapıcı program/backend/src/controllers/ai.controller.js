@@ -3,11 +3,65 @@ const Question = require('../models/Question.model');
 
 // AI Providers - Sırayla denenecek
 const AI_PROVIDERS = [
+  { name: 'Groq', envKey: 'GROQ_API_KEY', handler: callGroq },
   { name: 'Gemini', envKey: 'GEMINI_API_KEY', handler: callGemini },
   { name: 'OpenAI', envKey: 'OPENAI_API_KEY', handler: callOpenAI },
   { name: 'Claude', envKey: 'CLAUDE_API_KEY', handler: callClaude },
   { name: 'DeepSeek', envKey: 'DEEPSEEK_API_KEY', handler: callDeepSeek },
 ];
+
+// AI Service - Groq (Ücretsiz ve Çok Hızlı!)
+async function callGroq(prompt, systemPrompt) {
+  // Birden fazla Groq API key desteği
+  const groqKeys = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+    process.env.GROQ_API_KEY_4,
+    process.env.GROQ_API_KEY_5,
+  ].filter(key => key && key !== 'your-groq-api-key');
+
+  if (groqKeys.length === 0) {
+    throw new Error('Groq API key bulunamadı');
+  }
+
+  // Her key'i sırayla dene
+  const errors = [];
+  for (const apiKey of groqKeys) {
+    try {
+      console.log(`🔑 Groq API key deneniyor... (${groqKeys.indexOf(apiKey) + 1}/${groqKeys.length})`);
+      
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+      
+      console.log(`✅ Groq API key başarılı! (${groqKeys.indexOf(apiKey) + 1}/${groqKeys.length})`);
+      return response.data.choices[0].message.content;
+    } catch (error) {
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası: ${errorMsg}`);
+      errors.push(`Key ${groqKeys.indexOf(apiKey) + 1}: ${errorMsg}`);
+    }
+  }
+  
+  throw new Error(`Tüm Groq API key'leri başarısız:\n${errors.join('\n')}`);
+}
 
 // AI Service - Google Gemini (Ücretsiz)
 async function callGemini(prompt, systemPrompt) {
@@ -19,7 +73,7 @@ async function callGemini(prompt, systemPrompt) {
   const fullPrompt = `${systemPrompt}\n\n${prompt}`;
   
   const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
     {
       contents: [{
         parts: [{
@@ -156,8 +210,17 @@ async function callAI(prompt, systemPrompt) {
 
 // System prompts
 const TEACHER_PROMPT = `Sen ilkokuldan üniversite seviyesine kadar öğrencilere rehberlik eden, empatik ve sabırlı bir öğretmensin. 
-Soruları adım adım çöz, her adımı açıkla. Matematik sorularında LaTeX formatı kullan.
+Soruları adım adım çöz, her adımı açıkla.
+
+ÖNEMLI: Matematik sorularında LaTeX kullanma! Basit ve anlaşılır şekilde yaz:
+- Üslü sayılar: x^2, a^3 (LaTeX değil!)
+- Kesirler: 3/4, (a+b)/c şeklinde
+- Karekök: √x, √(a+b) şeklinde
+- Çarpma: x*y veya x·y
+- Bölme: a/b veya a÷b
+
 Doğrudan cevap verme, öğrencinin anlamasını sağla.`;
+
 
 // @desc    Solve question with AI
 exports.solveQuestion = async (req, res) => {
@@ -218,153 +281,132 @@ exports.performOCR = async (req, res) => {
       });
     }
 
-    // Convert image to base64
-    const base64Image = req.file.buffer.toString('base64');
-
-    // Use OpenAI Vision API for OCR
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Bu görseldeki metni ve matematiksel ifadeleri çıkar. Eğer matematik sorusu varsa LaTeX formatında yaz.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const extractedText = response.data.choices[0].message.content;
-
-    res.json({
-      success: true,
-      data: {
-        text: extractedText
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'OCR işlemi sırasında hata oluştu',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Perform OCR on image
-exports.performOCR = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Resim dosyası gereklidir'
-      });
-    }
+    console.log('📸 OCR işlemi başlatılıyor...');
+    console.log('Dosya boyutu:', req.file.size, 'bytes');
+    console.log('Dosya tipi:', req.file.mimetype);
 
     // Convert image to base64
     const base64Image = req.file.buffer.toString('base64');
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-    // Gemini Vision kullan (ücretsiz)
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key') {
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [{
-            parts: [
-              {
-                text: 'Bu görseldeki metni ve matematiksel ifadeleri çıkar. Eğer matematik sorusu varsa LaTeX formatında yaz.'
-              },
-              {
-                inline_data: {
-                  mime_type: 'image/jpeg',
-                  data: base64Image
-                }
-              }
-            ]
-          }]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+    // Groq Vision kullan (ücretsiz ve hızlı!)
+    const groqKeys = [
+      process.env.GROQ_API_KEY,
+      process.env.GROQ_API_KEY_2,
+      process.env.GROQ_API_KEY_3,
+      process.env.GROQ_API_KEY_4,
+      process.env.GROQ_API_KEY_5,
+    ].filter(key => key && key !== 'your-groq-api-key');
 
-      const extractedText = response.data.candidates[0].content.parts[0].text;
-
-      return res.json({
-        success: true,
-        data: {
-          text: extractedText
-        }
-      });
-    }
-
-    // OpenAI Vision API (ücretli)
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: 'gpt-4-vision-preview',
-          messages: [
+    if (groqKeys.length > 0) {
+      for (const apiKey of groqKeys) {
+        try {
+          console.log(`🤖 Groq Vision ile OCR deneniyor... (${groqKeys.indexOf(apiKey) + 1}/${groqKeys.length})`);
+          
+          const response = await axios.post(
+            'https://api.groq.com/openai/v1/chat/completions',
             {
-              role: 'user',
-              content: [
+              model: 'llama-3.2-90b-vision-preview',
+              messages: [
                 {
-                  type: 'text',
-                  text: 'Bu görseldeki metni ve matematiksel ifadeleri çıkar. Eğer matematik sorusu varsa LaTeX formatında yaz.'
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Bu görseldeki tüm metni, sayıları ve matematiksel ifadeleri dikkatle çıkar. Matematik formülleri için basit format kullan (x^2, √x, 3/4 gibi). Sadece metni ver, açıklama yapma.'
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: {
+                        url: imageUrl
+                      }
+                    }
+                  ]
+                }
+              ],
+              temperature: 0.1,
+              max_tokens: 2048,
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 30000
+            }
+          );
+
+          const extractedText = response.data.choices[0].message.content;
+          console.log('✅ Groq Vision OCR başarılı!');
+          console.log('Çıkarılan metin uzunluğu:', extractedText.length, 'karakter');
+          
+          return res.json({
+            success: true,
+            data: {
+              text: extractedText
+            }
+          });
+        } catch (groqError) {
+          console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası:`, groqError.response?.data || groqError.message);
+        }
+      }
+    }
+
+    // Gemini Vision (yedek)
+    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key') {
+      try {
+        console.log('🤖 Gemini Vision ile OCR deneniyor...');
+        
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            contents: [{
+              parts: [
+                {
+                  text: 'Bu görseldeki tüm metni, sayıları ve matematiksel ifadeleri dikkatle çıkar. Matematik formülleri için basit format kullan (x^2, √x, 3/4 gibi). Sadece metni ver, açıklama yapma.'
                 },
                 {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Image}`
+                  inline_data: {
+                    mime_type: req.file.mimetype || 'image/jpeg',
+                    data: base64Image
                   }
                 }
               ]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 2048,
             }
-          ],
-          max_tokens: 1000
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json'
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
           }
-        }
-      );
+        );
 
-      const extractedText = response.data.choices[0].message.content;
-
-      return res.json({
-        success: true,
-        data: {
-          text: extractedText
+        if (response.data.candidates && response.data.candidates[0]) {
+          const extractedText = response.data.candidates[0].content.parts[0].text;
+          console.log('✅ Gemini Vision OCR başarılı!');
+          console.log('Çıkarılan metin uzunluğu:', extractedText.length, 'karakter');
+          
+          return res.json({
+            success: true,
+            data: {
+              text: extractedText
+            }
+          });
         }
-      });
+      } catch (geminiError) {
+        console.log('❌ Gemini Vision hatası:', geminiError.response?.data || geminiError.message);
+      }
     }
 
-    throw new Error('OCR için API key gerekli (GEMINI_API_KEY veya OPENAI_API_KEY)');
+    throw new Error('OCR için çalışan bir AI servisi bulunamadı. Lütfen API key\'lerinizi kontrol edin.');
 
   } catch (error) {
+    console.error('❌ OCR işlemi başarısız:', error.message);
     res.status(500).json({
       success: false,
       message: 'OCR işlemi sırasında hata oluştu',
