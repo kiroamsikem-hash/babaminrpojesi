@@ -313,7 +313,7 @@ exports.performOCR = async (req, res) => {
           const response = await axios.post(
             'https://api.groq.com/openai/v1/chat/completions',
             {
-              model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+              model: 'meta-llama/llama-4-scout-17b-16e-instruct', // Llama 4 Scout Vision Model
             messages: [
               {
                 role: 'user',
