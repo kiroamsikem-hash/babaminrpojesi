@@ -1,78 +1,158 @@
 const axios = require('axios');
 const Question = require('../models/Question.model');
 
+// AI Providers - Sırayla denenecek
+const AI_PROVIDERS = [
+  { name: 'Gemini', envKey: 'GEMINI_API_KEY', handler: callGemini },
+  { name: 'OpenAI', envKey: 'OPENAI_API_KEY', handler: callOpenAI },
+  { name: 'Claude', envKey: 'CLAUDE_API_KEY', handler: callClaude },
+  { name: 'DeepSeek', envKey: 'DEEPSEEK_API_KEY', handler: callDeepSeek },
+];
+
 // AI Service - Google Gemini (Ücretsiz)
-const callGemini = async (prompt, systemPrompt) => {
-  try {
-    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
-    
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        contents: [{
-          parts: [{
-            text: fullPrompt
-          }]
+async function callGemini(prompt, systemPrompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'your-gemini-api-key') {
+    throw new Error('Gemini API key bulunamadı');
+  }
+
+  const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+  
+  const response = await axios.post(
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      contents: [{
+        parts: [{
+          text: fullPrompt
         }]
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    
-    return response.data.candidates[0].content.parts[0].text;
-  } catch (error) {
-    throw new Error('AI servisi yanıt vermedi: ' + error.message);
-  }
-};
-
-// AI Service - OpenAI GPT-4 (Ücretli)
-const callOpenAI = async (prompt, systemPrompt) => {
-  try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
-        ],
+      }],
+      generationConfig: {
         temperature: 0.7,
-        max_tokens: 2000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
+        maxOutputTokens: 2048,
       }
-    );
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    throw new Error('AI servisi yanıt vermedi: ' + error.message);
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    }
+  );
+  
+  if (!response.data.candidates || !response.data.candidates[0]) {
+    throw new Error('Gemini API yanıt vermedi');
   }
-};
+  
+  return response.data.candidates[0].content.parts[0].text;
+}
 
-// AI Service Selector - Önce Gemini dene, yoksa OpenAI
-const callAI = async (prompt, systemPrompt) => {
-  // Önce Gemini dene (ücretsiz)
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key') {
+// AI Service - OpenAI GPT-4
+async function callOpenAI(prompt, systemPrompt) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || apiKey === 'your-openai-api-key-here') {
+    throw new Error('OpenAI API key bulunamadı');
+  }
+
+  const response = await axios.post(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      model: 'gpt-4o-mini', // Ucuz ve hızlı
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    }
+  );
+  
+  return response.data.choices[0].message.content;
+}
+
+// AI Service - Claude (Anthropic)
+async function callClaude(prompt, systemPrompt) {
+  const apiKey = process.env.CLAUDE_API_KEY;
+  if (!apiKey || apiKey === 'your-claude-api-key') {
+    throw new Error('Claude API key bulunamadı');
+  }
+
+  const response = await axios.post(
+    'https://api.anthropic.com/v1/messages',
+    {
+      model: 'claude-3-haiku-20240307', // En ucuz Claude
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: prompt }
+      ]
+    },
+    {
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    }
+  );
+  
+  return response.data.content[0].text;
+}
+
+// AI Service - DeepSeek
+async function callDeepSeek(prompt, systemPrompt) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey || apiKey === 'your-deepseek-api-key') {
+    throw new Error('DeepSeek API key bulunamadı');
+  }
+
+  const response = await axios.post(
+    'https://api.deepseek.com/v1/chat/completions',
+    {
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    }
+  );
+  
+  return response.data.choices[0].message.content;
+}
+
+// AI Service Selector - Tüm provider'ları sırayla dene
+async function callAI(prompt, systemPrompt) {
+  const errors = [];
+  
+  for (const provider of AI_PROVIDERS) {
     try {
-      return await callGemini(prompt, systemPrompt);
+      console.log(`🤖 ${provider.name} deneniyor...`);
+      const result = await provider.handler(prompt, systemPrompt);
+      console.log(`✅ ${provider.name} başarılı!`);
+      return result;
     } catch (error) {
-      console.log('Gemini hatası, OpenAI deneniyor...', error.message);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      console.log(`❌ ${provider.name} hatası: ${errorMsg}`);
+      errors.push(`${provider.name}: ${errorMsg}`);
     }
   }
   
-  // Gemini yoksa veya hata verdiyse OpenAI dene
-  if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your-openai-api-key-here') {
-    return await callOpenAI(prompt, systemPrompt);
-  }
-  
-  throw new Error('Hiçbir AI API key tanımlanmamış. Lütfen GEMINI_API_KEY veya OPENAI_API_KEY ekleyin.');
-};
+  throw new Error(`Tüm AI servisleri başarısız oldu:\n${errors.join('\n')}`);
+}
 
 // System prompts
 const TEACHER_PROMPT = `Sen ilkokuldan üniversite seviyesine kadar öğrencilere rehberlik eden, empatik ve sabırlı bir öğretmensin. 

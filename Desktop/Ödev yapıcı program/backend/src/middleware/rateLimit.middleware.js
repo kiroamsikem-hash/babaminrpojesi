@@ -2,6 +2,11 @@ const User = require('../models/User.model');
 
 exports.checkDailyLimit = async (req, res, next) => {
   try {
+    // Test için limit kontrolünü devre dışı bırak
+    // TODO: Production'da aktif et
+    next();
+    return;
+    
     // Reset daily count if needed
     await User.resetDailyCount(req.user.id);
     
