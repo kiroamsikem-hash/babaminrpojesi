@@ -73,7 +73,7 @@ async function callGemini(prompt, systemPrompt) {
   const fullPrompt = `${systemPrompt}\n\n${prompt}`;
   
   const response = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
     {
       contents: [{
         parts: [{
@@ -314,51 +314,54 @@ exports.performOCR = async (req, res) => {
             'https://api.groq.com/openai/v1/chat/completions',
             {
               model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: 'Bu görseldeki tüm metni, sayıları ve matematiksel ifadeleri dikkatle çıkar. Matematik formülleri için basit format kullan (x^2, √x, 3/4 gibi). Sadece metni ver, açıklama yapma.'
-                    },
-                    {
-                      type: 'image_url',
-                      image_url: {
-                        url: imageUrl
-                      }
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Bu görseldeki tüm metni, sayıları ve matematiksel ifadeleri dikkatle çıkar. Matematik formülleri için basit format kullan (x^2, √x, 3/4 gibi). Sadece metni ver, açıklama yapma.'
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: imageUrl
                     }
-                  ]
-                }
-              ],
-              temperature: 0.1,
-              max_tokens: 2048,
+                  }
+                ]
+              }
+            ],
+            temperature: 0.1,
+            max_tokens: 2048,
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
             },
-            {
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 30000
-            }
-          );
+            timeout: 30000
+          }
+        );
 
-          const extractedText = response.data.choices[0].message.content;
-          console.log('✅ Groq Vision OCR başarılı!');
-          console.log('Çıkarılan metin uzunluğu:', extractedText.length, 'karakter');
-          
-          return res.json({
-            success: true,
-            data: {
-              text: extractedText
-            }
-          });
-        } catch (groqError) {
-          const errorMsg = groqError.response?.data?.error?.message || groqError.message;
-          console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası: ${errorMsg}`);
+        const extractedText = response.data.choices[0].message.content;
+        console.log('✅ Groq Vision OCR başarılı!');
+        console.log('Çıkarılan metin uzunluğu:', extractedText.length, 'karakter');
+        
+        return res.json({
+          success: true,
+          data: {
+            text: extractedText
+          }
+        });
+      } catch (groqError) {
+        const errorMsg = groqError.response?.data?.error?.message || groqError.message;
+        console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası: ${errorMsg}`);
+        // Eğer son key de başarısızsa Gemini'ye geç
+        if (groqKeys.indexOf(apiKey) === groqKeys.length - 1) {
+          console.log('❌ Tüm Groq API key\'leri başarısız oldu');
+          break; // Groq döngüsünden çık, Gemini'yi dene
         }
       }
-      console.log('❌ Tüm Groq API key\'leri başarısız oldu');
     } else {
       console.log('❌ Groq API key bulunamadı');
     }
@@ -416,7 +419,12 @@ exports.performOCR = async (req, res) => {
 
     // 3. HİÇBİRİ ÇALIŞMAZSA HATA VER
     console.error('❌ Tüm OCR servisleri başarısız');
-    throw new Error('OCR için çalışan bir AI servisi bulunamadı. Groq API key\'lerinizi kontrol edin.');
+    return res.status(500).json({
+      success: false,
+      message: 'OCR için çalışan bir AI servisi bulunamadı. Groq API key\'lerinizi kontrol edin.'
+    });
+      }
+    }
 
   } catch (error) {
     console.error('❌ OCR işlemi başarısız:', error.message);
