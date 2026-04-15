@@ -274,7 +274,12 @@ Lütfen bu soruyu adım adım çöz ve açıkla.`;
 // @desc    Perform OCR on image
 exports.performOCR = async (req, res) => {
   try {
+    console.log('🔍 OCR endpoint çağrıldı');
+    console.log('📋 Request headers:', req.headers);
+    console.log('👤 User:', req.user?.email);
+    
     if (!req.file) {
+      console.log('❌ Dosya bulunamadı');
       return res.status(400).json({
         success: false,
         message: 'Resim dosyası gereklidir'
