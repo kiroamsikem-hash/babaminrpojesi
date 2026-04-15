@@ -289,7 +289,7 @@ exports.performOCR = async (req, res) => {
     const base64Image = req.file.buffer.toString('base64');
     const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-    // Groq Vision kullan (ücretsiz ve hızlı!)
+    // 1. ÖNCE GROQ VISION DENE (ÜCRETSİZ VE HIZLI!)
     const groqKeys = [
       process.env.GROQ_API_KEY,
       process.env.GROQ_API_KEY_2,
@@ -297,6 +297,8 @@ exports.performOCR = async (req, res) => {
       process.env.GROQ_API_KEY_4,
       process.env.GROQ_API_KEY_5,
     ].filter(key => key && key !== 'your-groq-api-key');
+
+    console.log(`🔍 Groq API key sayısı: ${groqKeys.length}`);
 
     if (groqKeys.length > 0) {
       for (const apiKey of groqKeys) {
@@ -347,12 +349,16 @@ exports.performOCR = async (req, res) => {
             }
           });
         } catch (groqError) {
-          console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası:`, groqError.response?.data || groqError.message);
+          const errorMsg = groqError.response?.data?.error?.message || groqError.message;
+          console.log(`❌ Groq key ${groqKeys.indexOf(apiKey) + 1} hatası: ${errorMsg}`);
         }
       }
+      console.log('❌ Tüm Groq API key\'leri başarısız oldu');
+    } else {
+      console.log('❌ Groq API key bulunamadı');
     }
 
-    // Gemini Vision (yedek)
+    // 2. GROQ BAŞARISIZSA GEMİNİ VISION DENE
     if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key') {
       try {
         console.log('🤖 Gemini Vision ile OCR deneniyor...');
@@ -403,7 +409,9 @@ exports.performOCR = async (req, res) => {
       }
     }
 
-    throw new Error('OCR için çalışan bir AI servisi bulunamadı. Lütfen API key\'lerinizi kontrol edin.');
+    // 3. HİÇBİRİ ÇALIŞMAZSA HATA VER
+    console.error('❌ Tüm OCR servisleri başarısız');
+    throw new Error('OCR için çalışan bir AI servisi bulunamadı. Groq API key\'lerinizi kontrol edin.');
 
   } catch (error) {
     console.error('❌ OCR işlemi başarısız:', error.message);
