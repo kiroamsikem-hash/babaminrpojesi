@@ -1,9 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
 const app = express();
+const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -11,63 +12,11 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/civilization_timeline';
-
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB connected'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
-
-// Models
-const CivilizationSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  region: { type: String, required: true },
-  colorValue: { type: Number, required: true },
-  description: String,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const EventSchema = new mongoose.Schema({
-  startYear: { type: Number, required: true },
-  endYear: Number,
-  title: { type: String, required: true },
-  description: String,
-  civilizationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Civilization' },
-  period: String,
-  gridX: Number,
-  gridY: Number,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const ConnectionSchema = new mongoose.Schema({
-  sourceId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  targetId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  sourceType: { type: String, required: true },
-  targetType: { type: String, required: true },
-  connectionType: { type: String, required: true },
-  label: String,
-  description: String,
-  strength: Number,
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-const Civilization = mongoose.model('Civilization', CivilizationSchema);
-const Event = mongoose.model('Event', EventSchema);
-const Connection = mongoose.model('Connection', ConnectionSchema);
-
-// Routes
-
 // Health check
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: 'Civilization Timeline API',
+    message: 'Civilization Timeline API (PostgreSQL + NeonDB)',
     version: '1.0.0'
   });
 });
@@ -75,7 +24,9 @@ app.get('/', (req, res) => {
 // Civilizations
 app.get('/api/civilizations', async (req, res) => {
   try {
-    const civilizations = await Civilization.find().sort({ name: 1 });
+    const civilizations = await prisma.civilization.findMany({
+      orderBy: { name: 'asc' }
+    });
     res.json(civilizations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,8 +35,9 @@ app.get('/api/civilizations', async (req, res) => {
 
 app.post('/api/civilizations', async (req, res) => {
   try {
-    const civilization = new Civilization(req.body);
-    await civilization.save();
+    const civilization = await prisma.civilization.create({
+      data: req.body
+    });
     res.status(201).json(civilization);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -94,11 +46,10 @@ app.post('/api/civilizations', async (req, res) => {
 
 app.put('/api/civilizations/:id', async (req, res) => {
   try {
-    const civilization = await Civilization.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body, updatedAt: Date.now() },
-      { new: true }
-    );
+    const civilization = await prisma.civilization.update({
+      where: { id: parseInt(req.params.id) },
+      data: req.body
+    });
     res.json(civilization);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -107,7 +58,9 @@ app.put('/api/civilizations/:id', async (req, res) => {
 
 app.delete('/api/civilizations/:id', async (req, res) => {
   try {
-    await Civilization.findByIdAndDelete(req.params.id);
+    await prisma.civilization.delete({
+      where: { id: parseInt(req.params.id) }
+    });
     res.json({ message: 'Civilization deleted' });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -117,9 +70,10 @@ app.delete('/api/civilizations/:id', async (req, res) => {
 // Events
 app.get('/api/events', async (req, res) => {
   try {
-    const events = await Event.find()
-      .populate('civilizationId')
-      .sort({ startYear: 1 });
+    const events = await prisma.event.findMany({
+      include: { civilization: true },
+      orderBy: { startYear: 'asc' }
+    });
     res.json(events);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -128,8 +82,9 @@ app.get('/api/events', async (req, res) => {
 
 app.post('/api/events', async (req, res) => {
   try {
-    const event = new Event(req.body);
-    await event.save();
+    const event = await prisma.event.create({
+      data: req.body
+    });
     res.status(201).json(event);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -138,11 +93,10 @@ app.post('/api/events', async (req, res) => {
 
 app.put('/api/events/:id', async (req, res) => {
   try {
-    const event = await Event.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body, updatedAt: Date.now() },
-      { new: true }
-    );
+    const event = await prisma.event.update({
+      where: { id: parseInt(req.params.id) },
+      data: req.body
+    });
     res.json(event);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -151,7 +105,9 @@ app.put('/api/events/:id', async (req, res) => {
 
 app.delete('/api/events/:id', async (req, res) => {
   try {
-    await Event.findByIdAndDelete(req.params.id);
+    await prisma.event.delete({
+      where: { id: parseInt(req.params.id) }
+    });
     res.json({ message: 'Event deleted' });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -161,7 +117,7 @@ app.delete('/api/events/:id', async (req, res) => {
 // Connections
 app.get('/api/connections', async (req, res) => {
   try {
-    const connections = await Connection.find();
+    const connections = await prisma.connection.findMany();
     res.json(connections);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -170,8 +126,9 @@ app.get('/api/connections', async (req, res) => {
 
 app.post('/api/connections', async (req, res) => {
   try {
-    const connection = new Connection(req.body);
-    await connection.save();
+    const connection = await prisma.connection.create({
+      data: req.body
+    });
     res.status(201).json(connection);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -180,7 +137,9 @@ app.post('/api/connections', async (req, res) => {
 
 app.delete('/api/connections/:id', async (req, res) => {
   try {
-    await Connection.findByIdAndDelete(req.params.id);
+    await prisma.connection.delete({
+      where: { id: parseInt(req.params.id) }
+    });
     res.json({ message: 'Connection deleted' });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -200,33 +159,33 @@ app.post('/api/sync', async (req, res) => {
 
     if (civilizations) {
       for (const civ of civilizations) {
-        await Civilization.findOneAndUpdate(
-          { _id: civ._id },
-          civ,
-          { upsert: true, new: true }
-        );
+        await prisma.civilization.upsert({
+          where: { id: civ.id || 0 },
+          update: civ,
+          create: civ
+        });
         results.civilizations++;
       }
     }
 
     if (events) {
       for (const event of events) {
-        await Event.findOneAndUpdate(
-          { _id: event._id },
-          event,
-          { upsert: true, new: true }
-        );
+        await prisma.event.upsert({
+          where: { id: event.id || 0 },
+          update: event,
+          create: event
+        });
         results.events++;
       }
     }
 
     if (connections) {
       for (const conn of connections) {
-        await Connection.findOneAndUpdate(
-          { _id: conn._id },
-          conn,
-          { upsert: true, new: true }
-        );
+        await prisma.connection.upsert({
+          where: { id: conn.id || 0 },
+          update: conn,
+          create: conn
+        });
         results.connections++;
       }
     }
@@ -243,8 +202,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
+  console.log(`🐘 PostgreSQL (NeonDB) connected`);
 });

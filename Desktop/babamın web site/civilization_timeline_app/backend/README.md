@@ -1,192 +1,197 @@
-# 🚀 Civilization Timeline Backend API
+# 🚀 Civilization Timeline Backend
 
-REST API backend for Civilization Timeline App - Alternative to Firebase.
+REST API backend with Node.js + Express + Prisma + PostgreSQL (NeonDB)
 
 ## 🎯 Features
 
-- ✅ RESTful API
-- ✅ MongoDB database
+- ✅ REST API endpoints
+- ✅ PostgreSQL database (NeonDB)
+- ✅ Prisma ORM
 - ✅ CORS enabled
 - ✅ Bulk sync endpoint
-- ✅ Ready for Render.com deployment
+- ✅ Production ready
 
-## 📦 Installation
+## 📦 Tech Stack
+
+- **Runtime:** Node.js 18+
+- **Framework:** Express.js
+- **Database:** PostgreSQL (NeonDB)
+- **ORM:** Prisma
+- **Hosting:** Render.com
+
+## 🔧 Local Development
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL (or use NeonDB)
+
+### Setup
 
 ```bash
-cd backend
+# Install dependencies
 npm install
-```
 
-## 🔧 Configuration
+# Setup environment
+cp .env.example .env
+# Edit .env and add your DATABASE_URL
 
-Create `.env` file:
+# Generate Prisma client
+npm run prisma:generate
 
-```env
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/civilization_timeline
-```
+# Push schema to database
+npm run prisma:push
 
-## 🚀 Run Locally
-
-```bash
-# Development
+# Start server
 npm run dev
-
-# Production
-npm start
 ```
 
-## 📡 API Endpoints
+Server runs on http://localhost:3000
+
+## 🌐 API Endpoints
+
+### Health Check
+```
+GET /
+```
 
 ### Civilizations
-
-- `GET /api/civilizations` - Get all civilizations
-- `POST /api/civilizations` - Create civilization
-- `PUT /api/civilizations/:id` - Update civilization
-- `DELETE /api/civilizations/:id` - Delete civilization
+```
+GET    /api/civilizations      # Get all
+POST   /api/civilizations      # Create
+PUT    /api/civilizations/:id  # Update
+DELETE /api/civilizations/:id  # Delete
+```
 
 ### Events
-
-- `GET /api/events` - Get all events
-- `POST /api/events` - Create event
-- `PUT /api/events/:id` - Update event
-- `DELETE /api/events/:id` - Delete event
+```
+GET    /api/events             # Get all
+POST   /api/events             # Create
+PUT    /api/events/:id         # Update
+DELETE /api/events/:id         # Delete
+```
 
 ### Connections
-
-- `GET /api/connections` - Get all connections
-- `POST /api/connections` - Create connection
-- `DELETE /api/connections/:id` - Delete connection
-
-### Sync
-
-- `POST /api/sync` - Bulk sync (upsert multiple items)
-
-## 🌐 Deploy to Render.com
-
-### 1. Create MongoDB Atlas Database
-
-1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create free cluster
-3. Get connection string
-4. Whitelist all IPs (0.0.0.0/0)
-
-### 2. Deploy to Render
-
-1. Go to [Render.com](https://render.com)
-2. New > Web Service
-3. Connect GitHub repo: `kiroamsikem-hash/babaminrpojesi`
-4. Settings:
-   - **Name**: civilization-timeline-api
-   - **Root Directory**: `civilization_timeline_app/backend`
-   - **Environment**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Plan**: Free
-
-5. Environment Variables:
-   - `MONGODB_URI`: Your MongoDB Atlas connection string
-   - `PORT`: 3000 (optional, Render provides this)
-
-6. Click "Create Web Service"
-
-### 3. Get API URL
-
-After deployment, you'll get a URL like:
 ```
-https://civilization-timeline-api.onrender.com
+GET    /api/connections        # Get all
+POST   /api/connections        # Create
+DELETE /api/connections/:id    # Delete
 ```
 
-## 📱 Flutter Integration
+### Sync (Bulk Operations)
+```
+POST   /api/sync               # Bulk upsert
+```
 
-Update Flutter app to use REST API instead of Firebase:
-
-```dart
-// lib/core/api/api_service.dart
-class ApiService {
-  static const String baseUrl = 'https://civilization-timeline-api.onrender.com/api';
-  
-  Future<List<Event>> getEvents() async {
-    final response = await http.get(Uri.parse('$baseUrl/events'));
-    // Parse and return
-  }
-  
-  Future<void> saveEvent(Event event) async {
-    await http.post(
-      Uri.parse('$baseUrl/events'),
-      body: jsonEncode(event.toJson()),
-      headers: {'Content-Type': 'application/json'},
-    );
-  }
+Request body:
+```json
+{
+  "civilizations": [...],
+  "events": [...],
+  "connections": [...]
 }
 ```
 
-## 🔄 Sync Strategy
+## 🚀 Deployment (Render.com)
 
-### Option 1: REST API Only
+See `../RENDER_DEPLOYMENT.md` for detailed instructions.
 
-Replace Firebase with REST API:
-- Remove Firebase dependencies
-- Use HTTP requests
-- Implement polling for updates
+Quick steps:
 
-### Option 2: Hybrid (Firebase + REST API)
+1. Push to GitHub
+2. Create Web Service on Render.com
+3. Set environment variables:
+   - `DATABASE_URL`: Your NeonDB connection string
+4. Deploy!
 
-Use both:
-- Firebase for real-time sync
-- REST API as backup/alternative
-- Switch based on availability
+Build command:
+```bash
+npm install && npx prisma generate && npx prisma db push
+```
 
-### Option 3: REST API + WebSocket
+Start command:
+```bash
+npm start
+```
 
-Add real-time updates:
-- Install `socket.io`
-- Emit events on changes
-- Flutter listens to WebSocket
+## 🗄️ Database Schema
 
-## 💰 Cost
+### Civilization
+- id (auto)
+- name
+- region
+- colorValue
+- description
+- createdAt
+- updatedAt
 
-### Render.com Free Tier
-- ✅ 750 hours/month
-- ✅ Automatic deploys
-- ⚠️ Spins down after 15 min inactivity
-- ⚠️ Cold start ~30 seconds
+### Event
+- id (auto)
+- startYear
+- endYear
+- title
+- description
+- civilizationId (FK)
+- period
+- gridX, gridY
+- createdAt
+- updatedAt
 
-### MongoDB Atlas Free Tier
-- ✅ 512MB storage
-- ✅ Shared cluster
-- ✅ Enough for single user
+### Connection
+- id (auto)
+- sourceId
+- targetId
+- sourceType
+- targetType
+- connectionType
+- label
+- description
+- strength
+- createdAt
+- updatedAt
 
-## 🔧 Troubleshooting
+## 📝 Scripts
 
-### "Cannot connect to MongoDB"
+```bash
+npm start              # Start production server
+npm run dev            # Start development server (nodemon)
+npm run prisma:generate # Generate Prisma client
+npm run prisma:push    # Push schema to database
+```
 
-- Check MongoDB Atlas IP whitelist
-- Verify connection string
-- Check network access
+## 🔒 Environment Variables
 
-### "API not responding"
+```env
+PORT=3000
+DATABASE_URL=postgresql://user:password@host:5432/database?schema=public
+```
 
-- Render free tier spins down
+## 🐛 Troubleshooting
+
+### Database connection error
+- Check DATABASE_URL format
+- Verify NeonDB is accessible
+- Check SSL settings
+
+### Prisma errors
+```bash
+# Regenerate client
+npm run prisma:generate
+
+# Reset database (WARNING: deletes data)
+npx prisma db push --force-reset
+```
+
+### Cold start on Render.com
+- Free tier sleeps after 15 minutes
 - First request takes ~30 seconds
-- Consider paid tier for always-on
+- Use cron job to keep alive
 
-### "CORS error"
+## 📞 Support
 
-- CORS is enabled by default
-- Check if origin is allowed
-- Add specific origins if needed
+- GitHub: https://github.com/kiroamsikem-hash/babaminrpojesi
+- Deployment Guide: `../RENDER_DEPLOYMENT.md`
 
-## 📊 Monitoring
+## 📄 License
 
-Render Dashboard shows:
-- Deployment logs
-- Request metrics
-- Error logs
-- Resource usage
-
-## 🎉 Done!
-
-Your backend is now deployed and ready to use!
-
-API URL: `https://civilization-timeline-api.onrender.com`
+MIT
