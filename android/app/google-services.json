@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "704542458502",
+    "project_id": "civilization-timeline",
+    "storage_bucket": "civilization-timeline.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704542458502:android:37078df5f0fa9415c54707",
+        "android_client_info": {
+          "package_name": "com.antikmedeniyetler.civilization_timeline_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLfHsSYmt8EhKx1Amer65jns2aa72DqHY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,62 @@
+// Prisma Schema for PostgreSQL (NeonDB)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Civilization {
+  id          Int      @id @default(autoincrement())
+  name        String
+  region      String
+  colorValue  Int
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  events      Event[]
+  
+  @@map("civilizations")
+}
+
+model Event {
+  id             Int      @id @default(autoincrement())
+  startYear      Int
+  endYear        Int?
+  title          String
+  description    String?
+  civilizationId Int
+  period         String?
+  gridX          Float?
+  gridY          Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  civilization   Civilization @relation(fields: [civilizationId], references: [id], onDelete: Cascade)
+  
+  @@map("events")
+  @@index([startYear])
+  @@index([civilizationId])
+}
+
+model Connection {
+  id             Int      @id @default(autoincrement())
+  sourceId       Int
+  targetId       Int
+  sourceType     String
+  targetType     String
+  connectionType String
+  label          String?
+  description    String?
+  strength       Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("connections")
+  @@index([sourceId])
+  @@index([targetId])
+}
