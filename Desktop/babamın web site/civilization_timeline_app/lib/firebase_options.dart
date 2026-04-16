@@ -41,48 +41,51 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBOepbmh5lGcm--t2Z-_jM9UtCRKGh3JQI',
+    appId: '1:704542458502:web:2dfa5f13c9ea5681c54707',
+    messagingSenderId: '704542458502',
+    projectId: 'civilization-timeline',
+    authDomain: 'civilization-timeline.firebaseapp.com',
+    storageBucket: 'civilization-timeline.firebasestorage.app',
+    measurementId: 'G-XLVJQPKZD8',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBLfHsSYmt8EhKx1Amer65jns2aa72DqHY',
+    appId: '1:704542458502:android:37078df5f0fa9415c54707',
+    messagingSenderId: '704542458502',
+    projectId: 'civilization-timeline',
+    storageBucket: 'civilization-timeline.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: 'YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCKgC39HdvJZy93qHuc82EkEbpWsLTlkQM',
+    appId: '1:704542458502:ios:699d74b09c328ad2c54707',
+    messagingSenderId: '704542458502',
+    projectId: 'civilization-timeline',
+    storageBucket: 'civilization-timeline.firebasestorage.app',
     iosBundleId: 'com.antikmedeniyetler.civilizationTimelineApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_MACOS_API_KEY',
-    appId: 'YOUR_MACOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCKgC39HdvJZy93qHuc82EkEbpWsLTlkQM',
+    appId: '1:704542458502:ios:699d74b09c328ad2c54707',
+    messagingSenderId: '704542458502',
+    projectId: 'civilization-timeline',
+    storageBucket: 'civilization-timeline.firebasestorage.app',
     iosBundleId: 'com.antikmedeniyetler.civilizationTimelineApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'YOUR_WINDOWS_API_KEY',
-    appId: 'YOUR_WINDOWS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyBOepbmh5lGcm--t2Z-_jM9UtCRKGh3JQI',
+    appId: '1:704542458502:web:2bb60589b685ca04c54707',
+    messagingSenderId: '704542458502',
+    projectId: 'civilization-timeline',
+    authDomain: 'civilization-timeline.firebaseapp.com',
+    storageBucket: 'civilization-timeline.firebasestorage.app',
+    measurementId: 'G-SEH93L95MT',
   );
+
 }
 
 // ⚠️ IMPORTANT: This is a placeholder file!
