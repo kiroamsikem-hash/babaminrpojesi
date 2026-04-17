@@ -31,7 +31,16 @@ final yearRowsProvider = StreamProvider<List<YearRow>>((ref) async* {
   await ref.watch(isarProvider.future);
   final isarService = ref.watch(isarServiceProvider);
   final isar = await isarService.init();
-  yield* isar.yearRows.where().watch(fireImmediately: true);
+  
+  // Get all year rows
+  final rows = await isar.yearRows.where().findAll();
+  yield rows;
+  
+  // Watch for changes
+  await for (final _ in isar.yearRows.watchLazy()) {
+    final updatedRows = await isar.yearRows.where().findAll();
+    yield updatedRows;
+  }
 });
 
 /// Year Row Map Provider (for quick lookup)

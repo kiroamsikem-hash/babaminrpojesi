@@ -86,8 +86,8 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
     );
   }
 
-  void _showRowContextMenu(BuildContext context, Offset position, int year) {
-    showMenu(
+  void _showRowContextMenu(BuildContext context, Offset position, int year) async {
+    final value = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
         position.dx,
@@ -95,8 +95,8 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
         position.dx + 1,
         position.dy + 1,
       ),
-      items: [
-        const PopupMenuItem<String>(
+      items: const <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
           value: 'edit_row',
           child: Row(
             children: [
@@ -106,7 +106,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'add_photo',
           child: Row(
             children: [
@@ -116,7 +116,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'add_tag',
           child: Row(
             children: [
@@ -126,8 +126,8 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             ],
           ),
         ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
+        PopupMenuDivider(),
+        PopupMenuItem<String>(
           value: 'add_event',
           child: Row(
             children: [
@@ -138,33 +138,33 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
           ),
         ),
       ],
-    ).then((value) async {
-      if (value == 'edit_row' || value == 'add_photo' || value == 'add_tag') {
-        // Get existing year row if any
-        final isarService = ref.read(isarServiceProvider);
-        final isar = await isarService.init();
-        final yearRow = await isar.yearRows.filter().yearEqualTo(year).findFirst();
-        
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => YearRowEditor(
-              year: year,
-              yearRow: yearRow,
-            ),
-          );
-        }
-      } else if (value == 'add_event') {
-        Future.delayed(Duration.zero, () {
-          showDialog(
-            context: context,
-            builder: (context) => RowEditor(
-              civilizations: widget.civilizations,
-            ),
-          );
-        });
+    );
+    
+    if (value == 'edit_row' || value == 'add_photo' || value == 'add_tag') {
+      // Get existing year row if any
+      final isarService = ref.read(isarServiceProvider);
+      final isar = await isarService.init();
+      final yearRow = await isar.yearRows.filter().yearEqualTo(year).findFirst();
+      
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => YearRowEditor(
+            year: year,
+            yearRow: yearRow,
+          ),
+        );
       }
-    });
+    } else if (value == 'add_event') {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => RowEditor(
+            civilizations: widget.civilizations,
+          ),
+        );
+      }
+    }
   }
 
   @override
