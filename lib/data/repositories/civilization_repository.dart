@@ -74,7 +74,9 @@ class CivilizationRepository {
 
   /// Watch all civilizations (Stream)
   Stream<List<Civilization>> watchAll() async* {
+    print('👀 CivilizationRepository.watchAll() called');
     final isar = await _isar;
+    print('✅ Got Isar instance in watchAll, starting stream...');
     yield* isar.civilizations.where().watch(fireImmediately: true);
   }
 

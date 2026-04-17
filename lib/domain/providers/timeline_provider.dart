@@ -4,15 +4,23 @@ import '../../data/models/period_event.dart';
 import 'database_provider.dart';
 
 /// All Civilizations Provider (Stream)
-final civilizationsProvider = StreamProvider<List<Civilization>>((ref) {
+final civilizationsProvider = StreamProvider<List<Civilization>>((ref) async* {
+  print('🏛️ civilizationsProvider called');
+  // Wait for Isar to initialize first
+  await ref.watch(isarProvider.future);
+  print('✅ Isar ready, starting civilizations stream');
   final repo = ref.watch(civilizationRepositoryProvider);
-  return repo.watchAll();
+  yield* repo.watchAll();
 });
 
 /// All Events Provider (Stream)
-final eventsProvider = StreamProvider<List<PeriodEvent>>((ref) {
+final eventsProvider = StreamProvider<List<PeriodEvent>>((ref) async* {
+  print('📅 eventsProvider called');
+  // Wait for Isar to initialize first
+  await ref.watch(isarProvider.future);
+  print('✅ Isar ready, starting events stream');
   final repo = ref.watch(eventRepositoryProvider);
-  return repo.watchAll();
+  yield* repo.watchAll();
 });
 
 /// Selected Civilization Provider

@@ -96,13 +96,17 @@ class EventRepository {
 
   /// Watch all events (Stream)
   Stream<List<PeriodEvent>> watchAll() async* {
+    print('👀 EventRepository.watchAll() called');
     final isar = await _isar;
+    print('✅ Got Isar instance in watchAll, starting stream...');
     yield* isar.periodEvents.where().watch(fireImmediately: true);
   }
 
   /// Watch events by civilization (Stream)
   Stream<List<PeriodEvent>> watchByCivilization(int civilizationId) async* {
+    print('👀 EventRepository.watchByCivilization($civilizationId) called');
     final isar = await _isar;
+    print('✅ Got Isar instance in watchByCivilization, starting stream...');
     yield* isar.periodEvents
         .filter()
         .civilizationIdEqualTo(civilizationId)
