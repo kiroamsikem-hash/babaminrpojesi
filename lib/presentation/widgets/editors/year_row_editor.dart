@@ -2,26 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../data/models/civilization.dart';
+import '../../../data/models/year_row.dart';
 import '../../../domain/providers/database_provider.dart';
 
-/// Column (Civilization) Editor Dialog
-class ColumnEditor extends ConsumerStatefulWidget {
-  final Civilization? civilization;
+/// Year Row Editor Dialog - Satır (Yıl) düzenleme
+class YearRowEditor extends ConsumerStatefulWidget {
+  final int year;
+  final YearRow? yearRow;
 
-  const ColumnEditor({super.key, this.civilization});
+  const YearRowEditor({
+    super.key,
+    required this.year,
+    this.yearRow,
+  });
 
   @override
-  ConsumerState<ColumnEditor> createState() => _ColumnEditorState();
+  ConsumerState<YearRowEditor> createState() => _YearRowEditorState();
 }
 
-class _ColumnEditorState extends ConsumerState<ColumnEditor> {
-  late TextEditingController _nameController;
-  late TextEditingController _regionController;
+class _YearRowEditorState extends ConsumerState<YearRowEditor> {
   late TextEditingController _descriptionController;
   late TextEditingController _tagController;
   
-  Color _selectedColor = Colors.blue;
   List<String> _tags = [];
   String? _photoPath;
   String? _photoUrl;
@@ -30,23 +32,18 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.civilization?.name ?? '');
-    _regionController = TextEditingController(text: widget.civilization?.region ?? '');
-    _descriptionController = TextEditingController(text: widget.civilization?.description ?? '');
+    _descriptionController = TextEditingController(text: widget.yearRow?.description ?? '');
     _tagController = TextEditingController();
     
-    if (widget.civilization != null) {
-      _selectedColor = Color(widget.civilization!.colorValue);
-      _tags = widget.civilization!.tags ?? [];
-      _photoPath = widget.civilization!.photoPath;
-      _photoUrl = widget.civilization!.photoUrl;
+    if (widget.yearRow != null) {
+      _tags = widget.yearRow!.tags ?? [];
+      _photoPath = widget.yearRow!.photoPath;
+      _photoUrl = widget.yearRow!.photoUrl;
     }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _regionController.dispose();
     _descriptionController.dispose();
     _tagController.dispose();
     super.dispose();
@@ -64,7 +61,7 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
       if (image != null) {
         setState(() {
           _photoPath = image.path;
-          _photoUrl = null;
+          _photoUrl = null; // Clear URL if local file selected
         });
         
         if (mounted) {
@@ -99,33 +96,31 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
   }
 
   Future<void> _save() async {
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medeniyet adı gerekli')),
-      );
-      return;
-    }
-
-    final repo = ref.read(civilizationRepositoryProvider);
-    
-    final civilization = widget.civilization ?? Civilization();
-    civilization.name = _nameController.text.trim();
-    civilization.region = _regionController.text.trim();
-    civilization.description = _descriptionController.text.trim();
-    civilization.colorValue = _selectedColor.value;
-    civilization.tags = _tags.isEmpty ? null : _tags;
-    civilization.photoPath = _photoPath;
-    civilization.photoUrl = _photoUrl;
-    civilization.updatedAt = DateTime.now();
-    
-    if (widget.civilization == null) {
-      civilization.createdAt = DateTime.now();
-    }
-
     try {
-      await repo.create(civilization);
+      final isarService = ref.read(isarServiceProvider);
+      final isar = await isarService.init();
+      
+      final yearRow = widget.yearRow ?? YearRow();
+      yearRow.year = widget.year;
+      yearRow.description = _descriptionController.text.trim();
+      yearRow.tags = _tags.isEmpty ? null : _tags;
+      yearRow.photoPath = _photoPath;
+      yearRow.photoUrl = _photoUrl;
+      yearRow.updatedAt = DateTime.now();
+      
+      if (widget.yearRow == null) {
+        yearRow.createdAt = DateTime.now();
+      }
+
+      await isar.writeTxn(() async {
+        await isar.yearRows.put(yearRow);
+      });
+
       if (mounted) {
         Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Satır kaydedildi')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -150,10 +145,10 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
             // Header
             Row(
               children: [
-                Icon(Icons.view_column, color: _selectedColor),
+                const Icon(Icons.calendar_today, color: Colors.blue),
                 const SizedBox(width: 12),
                 Text(
-                  widget.civilization == null ? 'Yeni Sütun' : 'Sütunu Düzenle',
+                  'Satır Düzenle: M.Ö. ${widget.year.abs()}',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const Spacer(),
@@ -170,74 +165,17 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Medeniyet Adı *',
-                        hintText: 'Örn: Hitit, Miken, Batı Anadolu',
-                        prefixIcon: Icon(Icons.title),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Region
-                    TextField(
-                      controller: _regionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bölge',
-                        hintText: 'Örn: Anadolu, Yunanistan',
-                        prefixIcon: Icon(Icons.location_on),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Color Picker
-                    const Text('Renk', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        Colors.red,
-                        Colors.blue,
-                        Colors.green,
-                        Colors.orange,
-                        Colors.purple,
-                        Colors.teal,
-                        Colors.pink,
-                        Colors.amber,
-                        Colors.cyan,
-                        Colors.indigo,
-                      ].map((color) {
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedColor = color),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _selectedColor == color
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                width: 3,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-
                     // Photo
-                    const Text('Fotoğraf', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text('Satır Fotoğrafı', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
+                    const Text('Bu yıl satırının arka planında gösterilecek', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    
                     if (_photoPath != null || _photoUrl != null)
                       Stack(
                         children: [
                           Container(
-                            height: 120,
+                            height: 150,
                             width: double.infinity,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
@@ -270,11 +208,14 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
                         onPressed: _pickPhoto,
                         icon: const Icon(Icons.add_photo_alternate),
                         label: const Text('Fotoğraf Ekle'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
                       ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // Tags
-                    const Text('Etiketler', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text('Etiketler', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -282,7 +223,7 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
                           child: TextField(
                             controller: _tagController,
                             decoration: const InputDecoration(
-                              hintText: 'Etiket ekle (Örn: Saraylar, Ticaret)',
+                              hintText: 'Etiket ekle (Örn: Önemli Dönem, Savaşlar)',
                               prefixIcon: Icon(Icons.label),
                             ),
                             onSubmitted: (_) => _addTag(),
@@ -305,15 +246,16 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     // Description
+                    const Text('Açıklama', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: _descriptionController,
                       maxLines: 3,
                       decoration: const InputDecoration(
-                        labelText: 'Açıklama',
-                        hintText: 'Medeniyet hakkında notlar...',
+                        hintText: 'Bu yıl hakkında notlar...',
                         prefixIcon: Icon(Icons.notes),
                       ),
                     ),

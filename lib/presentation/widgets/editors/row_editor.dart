@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../data/models/period_event.dart';
 import '../../../data/models/civilization.dart';
@@ -33,6 +33,7 @@ class _RowEditorState extends ConsumerState<RowEditor> {
   List<String> _tags = [];
   String? _photoPath;
   String? _photoUrl;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -70,15 +71,32 @@ class _RowEditorState extends ConsumerState<RowEditor> {
   }
 
   Future<void> _pickPhoto() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
 
-    if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        _photoPath = result.files.first.path;
-      });
+      if (image != null) {
+        setState(() {
+          _photoPath = image.path;
+          _photoUrl = null;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Fotoğraf seçildi')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fotoğraf seçme hatası: $e')),
+        );
+      }
     }
   }
 

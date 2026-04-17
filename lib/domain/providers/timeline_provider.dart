@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/civilization.dart';
 import '../../data/models/period_event.dart';
+import '../../data/models/year_row.dart';
 import '../../presentation/widgets/settings/timeline_settings_dialog.dart';
 import 'database_provider.dart';
 
@@ -22,6 +23,31 @@ final eventsProvider = StreamProvider<List<PeriodEvent>>((ref) async* {
   print('✅ Isar ready, starting events stream');
   final repo = ref.watch(eventRepositoryProvider);
   yield* repo.watchAll();
+});
+
+/// Year Rows Provider (Stream)
+final yearRowsProvider = StreamProvider<List<YearRow>>((ref) async* {
+  print('📅 yearRowsProvider called');
+  await ref.watch(isarProvider.future);
+  final isarService = ref.watch(isarServiceProvider);
+  final isar = await isarService.init();
+  yield* isar.yearRows.where().watch(fireImmediately: true);
+});
+
+/// Year Row Map Provider (for quick lookup)
+final yearRowMapProvider = Provider<Map<int, YearRow>>((ref) {
+  final yearRowsAsync = ref.watch(yearRowsProvider);
+  return yearRowsAsync.when(
+    data: (rows) {
+      final map = <int, YearRow>{};
+      for (var row in rows) {
+        map[row.year] = row;
+      }
+      return map;
+    },
+    loading: () => {},
+    error: (_, __) => {},
+  );
 });
 
 /// Selected Civilization Provider

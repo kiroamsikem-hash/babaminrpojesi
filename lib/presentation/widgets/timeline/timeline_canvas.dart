@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/civilization.dart';
 import '../../../data/models/period_event.dart';
+import '../../../data/models/year_row.dart';
 import '../../../domain/providers/timeline_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../editors/column_editor.dart';
 import '../editors/row_editor.dart';
+import '../editors/year_row_editor.dart';
 import 'event_card.dart';
 
 /// Interactive Timeline Canvas with Pan & Zoom
@@ -94,27 +96,75 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
         position.dy + 1,
       ),
       items: [
-        PopupMenuItem(
-          child: const Row(
+        const PopupMenuItem<String>(
+          value: 'edit_row',
+          child: Row(
+            children: [
+              Icon(Icons.edit, size: 18),
+              SizedBox(width: 8),
+              Text('Satırı Düzenle'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'add_photo',
+          child: Row(
+            children: [
+              Icon(Icons.add_photo_alternate, size: 18),
+              SizedBox(width: 8),
+              Text('Satıra Fotoğraf Ekle'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'add_tag',
+          child: Row(
+            children: [
+              Icon(Icons.label, size: 18),
+              SizedBox(width: 8),
+              Text('Satıra Etiket Ekle'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'add_event',
+          child: Row(
             children: [
               Icon(Icons.add, size: 18),
               SizedBox(width: 8),
               Text('Bu Yıla Olay Ekle'),
             ],
           ),
-          onTap: () {
-            Future.delayed(Duration.zero, () {
-              showDialog(
-                context: context,
-                builder: (context) => RowEditor(
-                  civilizations: widget.civilizations,
-                ),
-              );
-            });
-          },
         ),
       ],
-    );
+    ).then((value) async {
+      if (value == 'edit_row' || value == 'add_photo' || value == 'add_tag') {
+        // Get existing year row if any
+        final isarService = ref.read(isarServiceProvider);
+        final isar = await isarService.init();
+        final yearRow = await isar.yearRows.filter().yearEqualTo(year).findFirst();
+        
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => YearRowEditor(
+              year: year,
+              yearRow: yearRow,
+            ),
+          );
+        }
+      } else if (value == 'add_event') {
+        Future.delayed(Duration.zero, () {
+          showDialog(
+            context: context,
+            builder: (context) => RowEditor(
+              civilizations: widget.civilizations,
+            ),
+          );
+        });
+      }
+    });
   }
 
   @override
@@ -289,28 +339,82 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
   }
 
   Widget _buildYearAxis(List<int> years) {
+    final yearRowMap = ref.watch(yearRowMapProvider);
+    
     return Container(
       width: AppConstants.axisWidth,
       color: AppColors.surface,
       child: Column(
         children: years.map((year) {
+          final yearRow = yearRowMap[year];
+          
           return GestureDetector(
             onSecondaryTapDown: (details) {
               _showRowContextMenu(context, details.globalPosition, year);
+            },
+            onLongPress: () {
+              // For mobile
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final Offset position = box.localToGlobal(Offset.zero);
+              _showRowContextMenu(context, position, year);
             },
             child: Container(
               height: AppConstants.yearHeight,
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.border),
               ),
-              child: Center(
-                child: Text(
-                  'M.Ö. ${year.abs()}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
+              child: Stack(
+                children: [
+                  // Photo background if exists
+                  if (yearRow?.photoUrl != null || yearRow?.photoPath != null)
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.2,
+                        child: Image.network(
+                          yearRow!.photoUrl ?? yearRow.photoPath!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox(),
+                        ),
+                      ),
+                    ),
+                  // Year label
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'M.Ö. ${year.abs()}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (yearRow?.tags != null && yearRow!.tags!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                yearRow.tags!.first,
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );

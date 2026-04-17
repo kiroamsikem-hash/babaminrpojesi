@@ -5,6 +5,7 @@ import '../../data/models/period_event.dart';
 import '../../data/models/artifact.dart';
 import '../../data/models/media_file.dart';
 import '../../data/models/connection.dart';
+import '../../data/models/year_row.dart';
 
 /// Isar Database Service (Singleton)
 class IsarService {
@@ -39,6 +40,7 @@ class IsarService {
         ArtifactSchema,
         MediaFileSchema,
         ConnectionSchema,
+        YearRowSchema,
       ],
       directory: dir.path,
       name: 'civilization_timeline',
@@ -86,6 +88,7 @@ class IsarService {
       'artifacts': await _isar!.artifacts.count(),
       'mediaFiles': await _isar!.mediaFiles.count(),
       'connections': await _isar!.connections.count(),
+      'yearRows': await _isar!.yearRows.count(),
     };
     print('📊 Stats: $stats');
     return stats;
