@@ -44,6 +44,9 @@ final csvParserProvider = Provider<CsvParser>((ref) {
 /// Database Stats Provider
 final databaseStatsProvider = FutureProvider<Map<String, int>>((ref) async {
   final service = ref.watch(isarServiceProvider);
-  await ref.watch(isarProvider.future); // Ensure DB is initialized
+  // Ensure Isar is initialized first
+  if (service.isar == null) {
+    await service.init();
+  }
   return await service.getStats();
 });
