@@ -42,13 +42,8 @@ class IsarService {
     return _isar!;
   }
 
-  /// Get Isar instance
-  Isar get isar {
-    if (_isar == null || !_isar!.isOpen) {
-      throw Exception('Isar not initialized. Call init() first.');
-    }
-    return _isar!;
-  }
+  /// Get Isar instance (returns null if not initialized)
+  Isar? get isar => _isar;
 
   /// Close database
   Future<void> close() async {

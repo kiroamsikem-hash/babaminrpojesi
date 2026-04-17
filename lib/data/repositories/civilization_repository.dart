@@ -9,10 +9,10 @@ class CivilizationRepository {
   CivilizationRepository(this._isarService);
 
   Future<Isar> get _isar async {
-    if (_isarService.isar == null || !_isarService.isar.isOpen) {
+    if (_isarService.isar == null) {
       await _isarService.init();
     }
-    return _isarService.isar;
+    return _isarService.isar!;
   }
 
   /// Get all civilizations
