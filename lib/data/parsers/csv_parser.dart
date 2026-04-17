@@ -14,14 +14,20 @@ class CsvParser {
   /// Parse CSV file and import to database
   Future<void> importFromAsset(String assetPath) async {
     try {
+      print('📄 CSV import started from: $assetPath');
+      
       // Load CSV from assets
+      print('📄 Loading CSV from assets...');
       final csvString = await rootBundle.loadString(assetPath);
+      print('📄 CSV loaded, length: ${csvString.length}');
       
       // Parse CSV
+      print('📄 Parsing CSV...');
       final csvTable = const CsvToListConverter(
         fieldDelimiter: ',',
         eol: '\n',
       ).convert(csvString);
+      print('📄 CSV parsed, rows: ${csvTable.length}');
 
       if (csvTable.isEmpty) {
         throw Exception('CSV file is empty');
@@ -29,12 +35,17 @@ class CsvParser {
 
       // First row is headers
       final headers = csvTable[0].map((e) => e.toString()).toList();
+      print('📄 Headers: $headers');
       
       // Extract civilization names (skip first column which is "Yıl")
       final civilizationNames = headers.sublist(1);
+      print('📄 Civilizations: $civilizationNames');
 
       await _importData(csvTable, civilizationNames);
-    } catch (e) {
+      print('✅ CSV import completed successfully');
+    } catch (e, stackTrace) {
+      print('❌ CSV import failed: $e');
+      print('Stack trace: $stackTrace');
       throw Exception('CSV import failed: $e');
     }
   }
@@ -44,18 +55,28 @@ class CsvParser {
     List<List<dynamic>> csvTable,
     List<String> civilizationNames,
   ) async {
+    print('💾 _importData() called');
+    
     // Ensure Isar is initialized
     if (_isarService.isar == null) {
+      print('⚠️ Isar is null in CSV parser, calling init()...');
       await _isarService.init();
+      print('✅ Isar initialized in CSV parser');
     }
     
     final isar = _isarService.isar!;
+    print('💾 Got Isar instance, starting transaction...');
 
     await isar.writeTxn(() async {
+      print('💾 Inside write transaction');
+      
       // Clear existing data
+      print('🗑️ Clearing existing data...');
       await isar.clear();
+      print('✅ Data cleared');
 
       // Create civilizations with colors
+      print('🏛️ Creating civilizations...');
       final civilizationColors = _getCivilizationColors();
       final civilizations = <Civilization>[];
 
@@ -68,17 +89,22 @@ class CsvParser {
         );
         civilizations.add(civ);
       }
+      print('🏛️ Created ${civilizations.length} civilizations');
 
       // Save civilizations
+      print('💾 Saving civilizations...');
       await isar.civilizations.putAll(civilizations);
+      print('✅ Civilizations saved');
 
       // Create map of civilization name to ID
       final civMap = <String, int>{};
       for (var civ in civilizations) {
         civMap[civ.name] = civ.id;
       }
+      print('🗺️ Civilization map created: $civMap');
 
       // Parse events
+      print('📅 Parsing events...');
       final events = <PeriodEvent>[];
       
       for (var i = 1; i < csvTable.length; i++) {
@@ -115,10 +141,17 @@ class CsvParser {
           events.add(event);
         }
       }
+      print('📅 Created ${events.length} events');
 
       // Save events
+      print('💾 Saving events...');
       await isar.periodEvents.putAll(events);
+      print('✅ Events saved');
+      
+      print('✅ Transaction completed successfully');
     });
+    
+    print('✅ _importData() completed');
   }
 
   /// Get civilization colors

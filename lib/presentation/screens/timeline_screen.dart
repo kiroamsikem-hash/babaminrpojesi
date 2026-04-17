@@ -24,17 +24,29 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
   Future<void> _initializeData() async {
     try {
+      print('📥 _initializeData() called');
+      
       // Wait for Isar to initialize
+      print('⏳ Waiting for Isar provider...');
       await ref.read(isarProvider.future);
+      print('✅ Isar provider ready');
       
       final parser = ref.read(csvParserProvider);
+      print('📊 Getting stats...');
       final stats = await ref.read(isarServiceProvider).getStats();
+      print('📊 Stats received: $stats');
       
       // Import CSV if database is empty
       if (stats['events'] == 0) {
+        print('📥 Database empty, importing CSV...');
         await parser.importFromAsset('assets/data.csv');
+        print('✅ CSV import completed');
+      } else {
+        print('✅ Database already has data, skipping import');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ _initializeData error: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Veri yükleme hatası: $e')),
