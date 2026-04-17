@@ -441,55 +441,245 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
 
   Widget _buildEventGrid(List<int> years, Map<int, Map<int, PeriodEvent>> gridData) {
     final selectedRow = ref.watch(selectedRowProvider);
+    final yearRange = ref.watch(yearRangeProvider);
     
-    return Column(
-      children: years.map((year) {
-        final yearEvents = gridData[year] ?? {};
-        final isSelected = selectedRow == year;
+    return Stack(
+      children: [
+        // Grid cells (background)
+        Column(
+          children: years.map((year) {
+            final isSelected = selectedRow == year;
 
-        return GestureDetector(
-          onTap: () {
-            // Satırı seç/deselect et
-            ref.read(selectedRowProvider.notifier).state = 
-                isSelected ? null : year;
-          },
-          child: Container(
-            height: AppConstants.yearHeight,
-            decoration: BoxDecoration(
-              color: isSelected 
-                  ? Colors.blue.withValues(alpha: 0.1) 
-                  : Colors.transparent,
-              border: Border.all(
-                color: isSelected 
-                    ? Colors.blue.withValues(alpha: 0.5)
-                    : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: Row(
-              children: widget.civilizations.map((civ) {
-                final event = yearEvents[civ.id];
-
-                return Container(
-                  width: AppConstants.columnWidth,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+            return GestureDetector(
+              onTap: () {
+                ref.read(selectedRowProvider.notifier).state = 
+                    isSelected ? null : year;
+              },
+              child: Container(
+                height: AppConstants.yearHeight,
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? Colors.blue.withValues(alpha: 0.1) 
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected 
+                        ? Colors.blue.withValues(alpha: 0.5)
+                        : Colors.transparent,
+                    width: 2,
                   ),
-                  child: event != null
-                      ? EventCard(
-                          event: event,
-                          civilization: civ,
-                          allCivilizations: widget.civilizations,
-                          onTap: () => widget.onEventTap(event),
-                        )
-                      : const SizedBox(),
-                );
-              }).toList(),
-            ),
+                ),
+                child: Row(
+                  children: widget.civilizations.map((civ) {
+                    return Container(
+                      width: AppConstants.columnWidth,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.border),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        
+        // Event bars (overlay)
+        ...widget.civilizations.asMap().entries.expand((civEntry) {
+          final civIndex = civEntry.key;
+          final civ = civEntry.value;
+          
+          // Get all events for this civilization
+          final civEvents = gridData.values
+              .expand((yearEvents) => yearEvents.values)
+              .where((e) => e.civilizationId == civ.id)
+              .toList();
+          
+          return civEvents.map((event) {
+            final startYear = event.startYear;
+            final endYear = event.endYear ?? event.startYear;
+            
+            // Calculate vertical position (which year row)
+            final startYearIndex = years.indexOf(startYear);
+            if (startYearIndex == -1) return const SizedBox();
+            
+            final endYearIndex = years.indexOf(endYear);
+            final actualEndIndex = endYearIndex == -1 ? startYearIndex : endYearIndex;
+            
+            // Calculate height (how many year rows it spans)
+            final rowSpan = actualEndIndex - startYearIndex + 1;
+            final barHeight = (rowSpan * AppConstants.yearHeight) - 8;
+            
+            // Calculate horizontal position (which civilization column)
+            final left = AppConstants.axisWidth + (civIndex * AppConstants.columnWidth) + 4;
+            final top = AppConstants.headerHeight + (startYearIndex * AppConstants.yearHeight) + 4;
+            
+            return Positioned(
+              left: left,
+              top: top,
+              child: GestureDetector(
+                onTap: () => widget.onEventTap(event),
+                onSecondaryTapDown: (details) {
+                  _showEventContextMenu(context, details.globalPosition, event);
+                },
+                onLongPress: () {
+                  final RenderBox box = context.findRenderObject() as RenderBox;
+                  final Offset position = box.localToGlobal(Offset.zero);
+                  _showEventContextMenu(context, position, event);
+                },
+                child: Container(
+                  width: AppConstants.columnWidth - 8,
+                  height: barHeight,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(civ.colorValue).withValues(alpha: 0.9),
+                        Color(civ.colorValue).withValues(alpha: 0.7),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(civ.colorValue).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Photo background
+                      if (event.photoUrl != null || event.photoPath != null)
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Opacity(
+                              opacity: 0.3,
+                              child: Image.network(
+                                event.photoUrl ?? event.photoPath!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Content
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (event.period != null)
+                              Text(
+                                event.period!,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            const SizedBox(height: 2),
+                            Flexible(
+                              child: Text(
+                                event.title,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                                maxLines: rowSpan > 1 ? 4 : 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (event.tags != null && event.tags!.isNotEmpty && rowSpan > 1)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Wrap(
+                                  spacing: 4,
+                                  children: event.tags!.take(2).map((tag) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white24,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        tag,
+                                        style: const TextStyle(
+                                          fontSize: 8,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          });
+        }).toList(),
+      ],
+    );
+  }
+  
+  void _showEventContextMenu(BuildContext context, Offset position, PeriodEvent event) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: const <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit, size: 18),
+              SizedBox(width: 8),
+              Text('Düzenle'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 18, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Sil', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'edit') {
+        showDialog(
+          context: context,
+          builder: (context) => RowEditor(
+            event: event,
+            civilizations: widget.civilizations,
           ),
         );
-      }).toList(),
-    );
+      } else if (value == 'delete') {
+        ref.read(eventRepositoryProvider).delete(event.id!);
+      }
+    });
   }
 }
 
