@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../widgets/timeline/timeline_canvas.dart';
+import '../widgets/timeline/timeline_canvas_horizontal.dart';
 import '../widgets/inspector/inspector_panel.dart';
 import '../widgets/editors/column_editor.dart';
 import '../widgets/editors/row_editor.dart';
@@ -267,7 +267,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             children: [
               // Timeline Canvas
               Expanded(
-                child: TimelineCanvas(
+                child: TimelineCanvasHorizontal(
                   civilizations: civilizations,
                   onEventTap: (event) {
                     ref.read(selectedEventProvider.notifier).state = event;
