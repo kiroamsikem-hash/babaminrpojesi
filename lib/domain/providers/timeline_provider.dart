@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/civilization.dart';
 import '../../data/models/period_event.dart';
-import '../widgets/settings/timeline_settings_dialog.dart';
+import '../../presentation/widgets/settings/timeline_settings_dialog.dart';
 import 'database_provider.dart';
 
 /// All Civilizations Provider (Stream)
