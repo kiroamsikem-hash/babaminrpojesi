@@ -36,6 +36,9 @@ final selectedCivilizationProvider = StateProvider<int?>((ref) => null);
 /// Selected Event Provider
 final selectedEventProvider = StateProvider<PeriodEvent?>((ref) => null);
 
+/// Selected Row (Year) Provider - Excel gibi satır seçimi
+final selectedRowProvider = StateProvider<int?>((ref) => null);
+
 /// Year Range Filter Provider (now uses settings)
 final yearRangeProvider = Provider<({int min, int max})>((ref) {
   final settings = ref.watch(timelineSettingsProvider);

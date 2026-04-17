@@ -5,6 +5,7 @@ import '../widgets/inspector/inspector_panel.dart';
 import '../widgets/editors/column_editor.dart';
 import '../widgets/editors/row_editor.dart';
 import '../widgets/settings/timeline_settings_dialog.dart';
+import '../widgets/guide/user_guide_dialog.dart';
 import '../../domain/providers/timeline_provider.dart';
 import '../../domain/providers/database_provider.dart';
 
@@ -179,6 +180,16 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               ),
               const PopupMenuDivider(),
               const PopupMenuItem<String>(
+                value: 'guide',
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Kullanım Kılavuzu'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
                 value: 'about',
                 child: Row(
                   children: [
@@ -208,6 +219,12 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
                   break;
                 case 'export_csv':
                   // TODO: CSV export
+                  break;
+                case 'guide':
+                  showDialog(
+                    context: context,
+                    builder: (context) => const UserGuideDialog(),
+                  );
                   break;
                 case 'about':
                   // TODO: About dialog
@@ -291,6 +308,16 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const UserGuideDialog(),
+          );
+        },
+        tooltip: 'Kullanım Kılavuzu',
+        child: const Icon(Icons.help_outline),
       ),
     );
   }

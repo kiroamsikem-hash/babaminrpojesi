@@ -340,6 +340,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
 
   Widget _buildYearAxis(List<int> years) {
     final yearRowMap = ref.watch(yearRowMapProvider);
+    final selectedRow = ref.watch(selectedRowProvider);
     
     return Container(
       width: AppConstants.axisWidth,
@@ -347,8 +348,14 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
       child: Column(
         children: years.map((year) {
           final yearRow = yearRowMap[year];
+          final isSelected = selectedRow == year;
           
           return GestureDetector(
+            onTap: () {
+              // Satırı seç/deselect et
+              ref.read(selectedRowProvider.notifier).state = 
+                  isSelected ? null : year;
+            },
             onSecondaryTapDown: (details) {
               _showRowContextMenu(context, details.globalPosition, year);
             },
@@ -361,7 +368,15 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             child: Container(
               height: AppConstants.yearHeight,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
+                color: isSelected 
+                    ? Colors.blue.withValues(alpha: 0.2) 
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected 
+                      ? Colors.blue.withValues(alpha: 0.5)
+                      : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
               ),
               child: Stack(
                 children: [
@@ -384,10 +399,11 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                       children: [
                         Text(
                           'M.Ö. ${year.abs()}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? Colors.blue : Colors.white,
                           ),
                         ),
                         if (yearRow?.tags != null && yearRow!.tags!.isNotEmpty)
@@ -424,31 +440,52 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
   }
 
   Widget _buildEventGrid(List<int> years, Map<int, Map<int, PeriodEvent>> gridData) {
+    final selectedRow = ref.watch(selectedRowProvider);
+    
     return Column(
       children: years.map((year) {
         final yearEvents = gridData[year] ?? {};
+        final isSelected = selectedRow == year;
 
-        return SizedBox(
-          height: AppConstants.yearHeight,
-          child: Row(
-            children: widget.civilizations.map((civ) {
-              final event = yearEvents[civ.id];
+        return GestureDetector(
+          onTap: () {
+            // Satırı seç/deselect et
+            ref.read(selectedRowProvider.notifier).state = 
+                isSelected ? null : year;
+          },
+          child: Container(
+            height: AppConstants.yearHeight,
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? Colors.blue.withValues(alpha: 0.1) 
+                  : Colors.transparent,
+              border: Border.all(
+                color: isSelected 
+                    ? Colors.blue.withValues(alpha: 0.5)
+                    : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: widget.civilizations.map((civ) {
+                final event = yearEvents[civ.id];
 
-              return Container(
-                width: AppConstants.columnWidth,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: event != null
-                    ? EventCard(
-                        event: event,
-                        civilization: civ,
-                        allCivilizations: widget.civilizations,
-                        onTap: () => widget.onEventTap(event),
-                      )
-                    : const SizedBox(),
-              );
-            }).toList(),
+                return Container(
+                  width: AppConstants.columnWidth,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: event != null
+                      ? EventCard(
+                          event: event,
+                          civilization: civ,
+                          allCivilizations: widget.civilizations,
+                          onTap: () => widget.onEventTap(event),
+                        )
+                      : const SizedBox(),
+                );
+              }).toList(),
+            ),
           ),
         );
       }).toList(),

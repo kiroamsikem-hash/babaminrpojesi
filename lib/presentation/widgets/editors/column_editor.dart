@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../../../data/models/civilization.dart';
 import '../../../domain/providers/database_provider.dart';
@@ -54,6 +55,18 @@ class _ColumnEditorState extends ConsumerState<ColumnEditor> {
 
   Future<void> _pickPhoto() async {
     try {
+      // Request permission
+      final status = await Permission.photos.request();
+      
+      if (!status.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Fotoğraf izni gerekli')),
+          );
+        }
+        return;
+      }
+
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1920,
