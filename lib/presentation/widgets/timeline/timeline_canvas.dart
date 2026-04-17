@@ -482,40 +482,37 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
           }).toList(),
         ),
         
-        // Event bars (overlay) - HORIZONTAL
-        ...years.asMap().entries.expand((yearEntry) {
-          final yearIndex = yearEntry.key;
-          final year = yearEntry.value;
-          final yearEvents = gridData[year] ?? {};
+        // Event bars (overlay) - VERTICAL spanning multiple year rows
+        ...widget.civilizations.asMap().entries.expand((civEntry) {
+          final civIndex = civEntry.key;
+          final civ = civEntry.value;
           
-          return yearEvents.entries.map((entry) {
-            final civId = entry.key;
-            final event = entry.value;
-            
-            // Find civilization index
-            final civIndex = widget.civilizations.indexWhere((c) => c.id == civId);
-            if (civIndex == -1) return const SizedBox();
-            
-            final civ = widget.civilizations[civIndex];
-            
-            // Calculate how many columns this event spans
+          // Get all events for this civilization
+          final civEvents = <PeriodEvent>[];
+          for (var yearEvents in gridData.values) {
+            if (yearEvents.containsKey(civ.id)) {
+              civEvents.add(yearEvents[civ.id]!);
+            }
+          }
+          
+          return civEvents.map((event) {
             final startYear = event.startYear;
             final endYear = event.endYear ?? event.startYear;
             
-            // Find start and end civilization indices
-            final startCivIndex = civIndex;
-            final duration = (endYear - startYear).abs();
+            // Find start and end year indices
+            final startYearIndex = years.indexOf(startYear);
+            if (startYearIndex == -1) return const SizedBox();
             
-            // Calculate width based on duration
-            // Each year = some pixels, but we need to span across columns
-            final baseWidth = AppConstants.columnWidth - 8;
-            final additionalWidth = (duration / 50) * AppConstants.columnWidth; // Scale factor
-            final barWidth = baseWidth + additionalWidth;
+            final endYearIndex = years.indexOf(endYear);
+            final actualEndIndex = endYearIndex == -1 ? startYearIndex : endYearIndex;
+            
+            // Calculate height (spans multiple year rows)
+            final rowSpan = (actualEndIndex - startYearIndex).abs() + 1;
+            final barHeight = (rowSpan * AppConstants.yearHeight) - 8;
             
             // Calculate position
             final left = AppConstants.axisWidth + (civIndex * AppConstants.columnWidth) + 4;
-            final top = AppConstants.headerHeight + (yearIndex * AppConstants.yearHeight) + 4;
-            final barHeight = AppConstants.yearHeight - 8;
+            final top = AppConstants.headerHeight + (startYearIndex * AppConstants.yearHeight) + 4;
             
             return Positioned(
               left: left,
@@ -531,7 +528,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                   _showEventContextMenu(context, position, event);
                 },
                 child: Container(
-                  width: barWidth,
+                  width: AppConstants.columnWidth - 8,
                   height: barHeight,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -539,8 +536,8 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                         Color(civ.colorValue).withValues(alpha: 0.9),
                         Color(civ.colorValue).withValues(alpha: 0.7),
                       ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.white, width: 2),
@@ -572,49 +569,55 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                       // Content
                       Padding(
                         padding: const EdgeInsets.all(8),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    event.title,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                            if (event.period != null && rowSpan > 2)
+                              Text(
+                                event.period!,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            const SizedBox(height: 4),
+                            Flexible(
+                              child: RotatedBox(
+                                quarterTurns: 0,
+                                child: Text(
+                                  event.title,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
-                                  if (event.period != null)
-                                    Text(
-                                      event.period!,
-                                      style: const TextStyle(
-                                        fontSize: 9,
-                                        color: Colors.white70,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                ],
+                                  maxLines: rowSpan > 3 ? 6 : 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
-                            if (duration > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${duration}y',
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                            if (rowSpan > 1)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white24,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${(endYear - startYear).abs()}y',
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
