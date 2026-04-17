@@ -17,9 +17,8 @@ void main() async {
     // Sign in anonymously
     await firebaseService.signInAnonymously();
     
-    // Initialize sync service
+    // Initialize sync service (no initialize method needed)
     final syncService = SyncService();
-    await syncService.initialize();
     
     print('✅ App initialized with Firebase sync');
   } catch (e) {
