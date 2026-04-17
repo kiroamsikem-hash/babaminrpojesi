@@ -26,6 +26,11 @@ class PeriodEvent {
   double? gridX;
   double? gridY;
 
+  // New features
+  List<String>? tags; // Etiketler: ["Savaş", "Barış Antlaşması", vb.]
+  String? photoUrl; // Satır fotoğrafı URL'i
+  String? photoPath; // Local photo path
+
   DateTime? createdAt;
   DateTime? updatedAt;
 
@@ -40,6 +45,9 @@ class PeriodEvent {
     this.period,
     this.gridX,
     this.gridY,
+    this.tags,
+    this.photoUrl,
+    this.photoPath,
   }) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
@@ -62,6 +70,9 @@ class PeriodEvent {
         'period': period,
         'gridX': gridX,
         'gridY': gridY,
+        'tags': tags,
+        'photoUrl': photoUrl,
+        'photoPath': photoPath,
         'createdAt': createdAt?.toIso8601String(),
         'updatedAt': updatedAt?.toIso8601String(),
       };
@@ -77,6 +88,9 @@ class PeriodEvent {
     event.period = json['period'];
     event.gridX = json['gridX']?.toDouble();
     event.gridY = json['gridY']?.toDouble();
+    event.tags = json['tags'] != null ? List<String>.from(json['tags']) : null;
+    event.photoUrl = json['photoUrl'];
+    event.photoPath = json['photoPath'];
     event.createdAt = json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null;
     event.updatedAt = json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null;
     return event;

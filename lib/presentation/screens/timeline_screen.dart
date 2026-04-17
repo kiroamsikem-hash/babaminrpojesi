@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/timeline/timeline_canvas.dart';
 import '../widgets/inspector/inspector_panel.dart';
+import '../widgets/editors/column_editor.dart';
+import '../widgets/editors/row_editor.dart';
+import '../widgets/settings/timeline_settings_dialog.dart';
 import '../../domain/providers/timeline_provider.dart';
 import '../../domain/providers/database_provider.dart';
 
@@ -118,6 +121,93 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           ],
         ),
         actions: [
+          // Settings (Three dots menu)
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Ayarlar',
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.settings, size: 20),
+                    SizedBox(width: 12),
+                    Text('Timeline Ayarları'),
+                  ],
+                ),
+                onTap: () {
+                  Future.delayed(Duration.zero, () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => const TimelineSettingsDialog(),
+                    );
+                  });
+                },
+              ),
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.view_column, size: 20),
+                    SizedBox(width: 12),
+                    Text('Yeni Sütun'),
+                  ],
+                ),
+                onTap: () {
+                  Future.delayed(Duration.zero, () => _showColumnEditor(context));
+                },
+              ),
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.table_rows, size: 20),
+                    SizedBox(width: 12),
+                    Text('Yeni Satır'),
+                  ],
+                ),
+                onTap: () {
+                  Future.delayed(Duration.zero, () => _showRowEditor(context));
+                },
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.import_export, size: 20),
+                    SizedBox(width: 12),
+                    Text('CSV İçe Aktar'),
+                  ],
+                ),
+                onTap: () {
+                  // TODO: CSV import
+                },
+              ),
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.download, size: 20),
+                    SizedBox(width: 12),
+                    Text('CSV Dışa Aktar'),
+                  ],
+                ),
+                onTap: () {
+                  // TODO: CSV export
+                },
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20),
+                    SizedBox(width: 12),
+                    Text('Hakkında'),
+                  ],
+                ),
+                onTap: () {
+                  // TODO: About dialog
+                },
+              ),
+            ],
+          ),
+          
           // Search
           IconButton(
             icon: const Icon(Icons.search),
@@ -194,6 +284,21 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showColumnEditor(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const ColumnEditor(),
+    );
+  }
+
+  void _showRowEditor(BuildContext context) {
+    final civilizations = ref.read(civilizationsProvider).value ?? [];
+    showDialog(
+      context: context,
+      builder: (context) => RowEditor(civilizations: civilizations),
     );
   }
 

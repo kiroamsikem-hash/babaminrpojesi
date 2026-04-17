@@ -16,6 +16,11 @@ class Civilization {
 
   String? description;
 
+  // New features
+  List<String>? tags; // Etiketler: ["Saraylar", "Ticaret", vb.]
+  String? photoUrl; // Sütun fotoğrafı URL'i
+  String? photoPath; // Local photo path
+
   DateTime? createdAt;
   DateTime? updatedAt;
 
@@ -26,6 +31,9 @@ class Civilization {
     required this.region,
     required this.colorValue,
     this.description,
+    this.tags,
+    this.photoUrl,
+    this.photoPath,
   }) {
     createdAt = DateTime.now();
     updatedAt = DateTime.now();
@@ -38,6 +46,9 @@ class Civilization {
         'region': region,
         'colorValue': colorValue,
         'description': description,
+        'tags': tags,
+        'photoUrl': photoUrl,
+        'photoPath': photoPath,
         'createdAt': createdAt?.toIso8601String(),
         'updatedAt': updatedAt?.toIso8601String(),
       };
@@ -49,6 +60,9 @@ class Civilization {
     civ.region = json['region'] ?? '';
     civ.colorValue = json['colorValue'] ?? 0xFF000000;
     civ.description = json['description'];
+    civ.tags = json['tags'] != null ? List<String>.from(json['tags']) : null;
+    civ.photoUrl = json['photoUrl'];
+    civ.photoPath = json['photoPath'];
     civ.createdAt = json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null;
     civ.updatedAt = json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null;
     return civ;

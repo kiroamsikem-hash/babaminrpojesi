@@ -5,6 +5,8 @@ import '../../../data/models/period_event.dart';
 import '../../../domain/providers/timeline_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../editors/column_editor.dart';
+import '../editors/row_editor.dart';
 import 'event_card.dart';
 
 /// Interactive Timeline Canvas with Pan & Zoom
@@ -30,6 +32,89 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
   void dispose() {
     _transformationController.dispose();
     super.dispose();
+  }
+
+  void _showColumnContextMenu(BuildContext context, Offset position, Civilization civ) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: [
+        PopupMenuItem(
+          child: const Row(
+            children: [
+              Icon(Icons.edit, size: 18),
+              SizedBox(width: 8),
+              Text('Sütunu Düzenle'),
+            ],
+          ),
+          onTap: () {
+            Future.delayed(Duration.zero, () {
+              showDialog(
+                context: context,
+                builder: (context) => ColumnEditor(civilization: civ),
+              );
+            });
+          },
+        ),
+        PopupMenuItem(
+          child: const Row(
+            children: [
+              Icon(Icons.add, size: 18),
+              SizedBox(width: 8),
+              Text('Yeni Satır Ekle'),
+            ],
+          ),
+          onTap: () {
+            Future.delayed(Duration.zero, () {
+              showDialog(
+                context: context,
+                builder: (context) => RowEditor(
+                  civilizations: widget.civilizations,
+                ),
+              );
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  void _showRowContextMenu(BuildContext context, Offset position, int year) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: [
+        PopupMenuItem(
+          child: const Row(
+            children: [
+              Icon(Icons.add, size: 18),
+              SizedBox(width: 8),
+              Text('Bu Yıla Olay Ekle'),
+            ],
+          ),
+          onTap: () {
+            Future.delayed(Duration.zero, () {
+              showDialog(
+                context: context,
+                builder: (context) => RowEditor(
+                  civilizations: widget.civilizations,
+                ),
+              );
+            });
+          },
+        ),
+      ],
+    );
   }
 
   @override
@@ -118,7 +203,14 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
           ),
 
           // Civilization headers
-          ...widget.civilizations.map((civ) => Container(
+          ...widget.civilizations.asMap().entries.map((entry) {
+            final index = entry.key;
+            final civ = entry.value;
+            return GestureDetector(
+              onSecondaryTapDown: (details) {
+                _showColumnContextMenu(context, details.globalPosition, civ);
+              },
+              child: Container(
                 width: AppConstants.columnWidth,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -129,18 +221,68 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                   ),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: Center(
-                  child: Text(
-                    civ.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.white,
+                child: Stack(
+                  children: [
+                    // Photo background if exists
+                    if (civ.photoUrl != null || civ.photoPath != null)
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.3,
+                          child: Image.network(
+                            civ.photoUrl ?? civ.photoPath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
+                        ),
+                      ),
+                    // Name
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            civ.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (civ.tags != null && civ.tags!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Wrap(
+                                spacing: 4,
+                                children: civ.tags!.take(2).map((tag) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
                 ),
-              )),
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -152,17 +294,22 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
       color: AppColors.surface,
       child: Column(
         children: years.map((year) {
-          return Container(
-            height: AppConstants.yearHeight,
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Center(
-              child: Text(
-                'M.Ö. ${year.abs()}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontFamily: 'monospace',
+          return GestureDetector(
+            onSecondaryTapDown: (details) {
+              _showRowContextMenu(context, details.globalPosition, year);
+            },
+            child: Container(
+              height: AppConstants.yearHeight,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Center(
+                child: Text(
+                  'M.Ö. ${year.abs()}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ),
             ),
