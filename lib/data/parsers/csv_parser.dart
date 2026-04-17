@@ -44,7 +44,12 @@ class CsvParser {
     List<List<dynamic>> csvTable,
     List<String> civilizationNames,
   ) async {
-    final isar = _isarService.isar;
+    // Ensure Isar is initialized
+    if (_isarService.isar == null) {
+      await _isarService.init();
+    }
+    
+    final isar = _isarService.isar!;
 
     await isar.writeTxn(() async {
       // Clear existing data
