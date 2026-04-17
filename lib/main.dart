@@ -4,10 +4,20 @@ import 'core/theme/app_theme.dart';
 import 'presentation/screens/main_screen.dart';
 import 'core/firebase/firebase_service.dart';
 import 'core/firebase/sync_service.dart';
+import 'core/database/isar_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Isar Database (MUST BE FIRST!)
+  try {
+    final isarService = IsarService.instance;
+    await isarService.init();
+    print('✅ Isar database initialized');
+  } catch (e) {
+    print('❌ Isar initialization failed: $e');
+  }
   
   // Initialize Firebase
   try {
