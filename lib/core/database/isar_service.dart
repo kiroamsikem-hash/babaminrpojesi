@@ -20,12 +20,18 @@ class IsarService {
 
   /// Initialize Isar database
   Future<Isar> init() async {
+    print('🔧 IsarService.init() called');
+    
     if (_isar != null && _isar!.isOpen) {
+      print('✅ Isar already initialized and open');
       return _isar!;
     }
 
+    print('📂 Getting application documents directory...');
     final dir = await getApplicationDocumentsDirectory();
+    print('📂 Directory: ${dir.path}');
 
+    print('🔨 Opening Isar database...');
     _isar = await Isar.open(
       [
         CivilizationSchema,
@@ -39,11 +45,16 @@ class IsarService {
       inspector: true, // Enable Isar Inspector for debugging
     );
 
+    print('✅ Isar database opened successfully');
+    print('📊 Isar instance is ${_isar!.isOpen ? "OPEN" : "CLOSED"}');
     return _isar!;
   }
 
   /// Get Isar instance (returns null if not initialized)
-  Isar? get isar => _isar;
+  Isar? get isar {
+    print('🔍 IsarService.isar getter called, _isar is ${_isar == null ? "NULL" : "NOT NULL"}');
+    return _isar;
+  }
 
   /// Close database
   Future<void> close() async {
@@ -63,15 +74,20 @@ class IsarService {
 
   /// Get database statistics
   Future<Map<String, int>> getStats() async {
+    print('📊 getStats() called');
     if (_isar == null) {
+      print('⚠️ Isar is null, calling init()...');
       await init();
     }
-    return {
+    print('📊 Counting records...');
+    final stats = {
       'civilizations': await _isar!.civilizations.count(),
       'events': await _isar!.periodEvents.count(),
       'artifacts': await _isar!.artifacts.count(),
       'mediaFiles': await _isar!.mediaFiles.count(),
       'connections': await _isar!.connections.count(),
     };
+    print('📊 Stats: $stats');
+    return stats;
   }
 }

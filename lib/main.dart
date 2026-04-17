@@ -10,31 +10,44 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  print('🚀 APP STARTING...');
+  
   // Initialize Isar Database (MUST BE FIRST!)
   try {
+    print('📦 Initializing Isar...');
     final isarService = IsarService.instance;
+    print('📦 IsarService instance created');
     await isarService.init();
-    print('✅ Isar database initialized');
-  } catch (e) {
+    print('✅ Isar database initialized successfully');
+    print('📊 Isar instance: ${isarService.isar != null ? "NOT NULL" : "NULL"}');
+  } catch (e, stackTrace) {
     print('❌ Isar initialization failed: $e');
+    print('Stack trace: $stackTrace');
   }
   
   // Initialize Firebase
   try {
+    print('🔥 Initializing Firebase...');
     final firebaseService = FirebaseService();
     await firebaseService.initialize();
+    print('✅ Firebase initialized');
     
     // Sign in anonymously
     await firebaseService.signInAnonymously();
+    print('✅ Firebase auth completed');
     
     // Initialize sync service (no initialize method needed)
     final syncService = SyncService();
+    print('✅ Sync service created');
     
     print('✅ App initialized with Firebase sync');
-  } catch (e) {
+  } catch (e, stackTrace) {
     print('⚠️ Firebase initialization failed: $e');
+    print('Stack trace: $stackTrace');
     print('📱 App will run in offline mode');
   }
+  
+  print('🎨 Starting Flutter app...');
   
   runApp(
     const ProviderScope(

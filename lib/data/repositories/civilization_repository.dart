@@ -9,9 +9,12 @@ class CivilizationRepository {
   CivilizationRepository(this._isarService);
 
   Future<Isar> get _isar async {
+    print('🔍 CivilizationRepository._isar getter called');
     if (_isarService.isar == null) {
+      print('⚠️ Isar is null in repository, calling init()...');
       await _isarService.init();
     }
+    print('✅ Returning Isar instance from repository');
     return _isarService.isar!;
   }
 
