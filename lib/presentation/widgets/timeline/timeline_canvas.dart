@@ -482,12 +482,12 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
           }).toList(),
         ),
         
-        // Event bars (overlay) - VERTICAL spanning multiple year rows
+        // Event bars (overlay) - VERTICAL spanning from start year to end year
         ...widget.civilizations.asMap().entries.expand((civEntry) {
           final civIndex = civEntry.key;
           final civ = civEntry.value;
           
-          // Get all events for this civilization from gridData
+          // Get all unique events for this civilization
           final civEvents = <PeriodEvent>[];
           final processedEventIds = <int>{};
           
@@ -505,45 +505,23 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             final startYear = event.startYear;
             final endYear = event.endYear ?? event.startYear;
             
-            // Find which row the start year is in
-            int startRowIndex = -1;
-            for (int i = 0; i < years.length; i++) {
-              if (years[i] <= startYear && (i == years.length - 1 || years[i + 1] > startYear)) {
-                startRowIndex = i;
-                break;
-              }
-            }
-            
-            if (startRowIndex == -1) {
-              // If start year is before first year in list, use first row
-              if (startYear >= years.first) {
-                startRowIndex = 0;
-              } else {
-                return const SizedBox();
-              }
-            }
-            
-            // Find which row the end year is in
-            int endRowIndex = startRowIndex;
-            for (int i = startRowIndex; i < years.length; i++) {
-              if (years[i] <= endYear) {
-                endRowIndex = i;
-              } else {
-                break;
-              }
-            }
-            
-            // Calculate height based on actual year span
-            final yearSpan = (endYear - startYear).abs();
-            final totalYearRange = (years.last - years.first).abs();
+            // Calculate position based on actual years, not year list indices
+            final minYear = years.first;
+            final maxYear = years.last;
+            final totalYearRange = (maxYear - minYear).abs();
             final totalPixelHeight = years.length * AppConstants.yearHeight;
             
-            // Calculate proportional height
+            // Calculate where start year falls in the timeline
+            final startOffset = (startYear - minYear).abs();
+            final startPixelOffset = (startOffset / totalYearRange) * totalPixelHeight;
+            
+            // Calculate bar height based on year span
+            final yearSpan = (endYear - startYear).abs();
             final barHeight = (yearSpan / totalYearRange) * totalPixelHeight;
             
-            // Position: stays in its own column
+            // Position
             final left = AppConstants.axisWidth + (civIndex * AppConstants.columnWidth) + 4;
-            final top = AppConstants.headerHeight + (startRowIndex * AppConstants.yearHeight) + 4;
+            final top = AppConstants.headerHeight + startPixelOffset + 4;
             final barWidth = AppConstants.columnWidth - 8;
             
             return Positioned(
@@ -561,7 +539,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                 },
                 child: Container(
                   width: barWidth,
-                  height: barHeight,
+                  height: barHeight.clamp(20.0, double.infinity),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -626,7 +604,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
-                                maxLines: (barHeight / 20).floor(),
+                                maxLines: (barHeight / 20).floor().clamp(1, 10),
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                               ),
