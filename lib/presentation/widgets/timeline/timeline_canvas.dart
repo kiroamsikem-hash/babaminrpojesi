@@ -487,11 +487,17 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
           final civIndex = civEntry.key;
           final civ = civEntry.value;
           
-          // Get all events for this civilization
+          // Get all events for this civilization from gridData
           final civEvents = <PeriodEvent>[];
+          final processedEventIds = <int>{};
+          
           for (var yearEvents in gridData.values) {
             if (yearEvents.containsKey(civ.id)) {
-              civEvents.add(yearEvents[civ.id]!);
+              final event = yearEvents[civ.id]!;
+              if (event.id != null && !processedEventIds.contains(event.id)) {
+                civEvents.add(event);
+                processedEventIds.add(event.id!);
+              }
             }
           }
           
@@ -499,20 +505,21 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             final startYear = event.startYear;
             final endYear = event.endYear ?? event.startYear;
             
-            // Find start and end year indices
+            // Find start and end year indices in the years list
             final startYearIndex = years.indexOf(startYear);
             if (startYearIndex == -1) return const SizedBox();
             
             final endYearIndex = years.indexOf(endYear);
             final actualEndIndex = endYearIndex == -1 ? startYearIndex : endYearIndex;
             
-            // Calculate height (spans multiple year rows)
+            // Calculate height - spans from start year to end year
             final rowSpan = (actualEndIndex - startYearIndex).abs() + 1;
             final barHeight = (rowSpan * AppConstants.yearHeight) - 8;
             
-            // Calculate position
+            // Position: stays in its own column, doesn't move horizontally
             final left = AppConstants.axisWidth + (civIndex * AppConstants.columnWidth) + 4;
             final top = AppConstants.headerHeight + (startYearIndex * AppConstants.yearHeight) + 4;
+            final barWidth = AppConstants.columnWidth - 8;
             
             return Positioned(
               left: left,
@@ -528,7 +535,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                   _showEventContextMenu(context, position, event);
                 },
                 child: Container(
-                  width: AppConstants.columnWidth - 8,
+                  width: barWidth,
                   height: barHeight,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -587,19 +594,16 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                               ),
                             const SizedBox(height: 4),
                             Flexible(
-                              child: RotatedBox(
-                                quarterTurns: 0,
-                                child: Text(
-                                  event.title,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: rowSpan > 3 ? 6 : 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
+                              child: Text(
+                                event.title,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
+                                maxLines: rowSpan > 3 ? 6 : 3,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                               ),
                             ),
                             if (rowSpan > 1)
