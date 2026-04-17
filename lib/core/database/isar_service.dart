@@ -53,19 +53,25 @@ class IsarService {
 
   /// Clear all data (for testing/reset)
   Future<void> clearAll() async {
-    await isar.writeTxn(() async {
-      await isar.clear();
+    if (_isar == null) {
+      await init();
+    }
+    await _isar!.writeTxn(() async {
+      await _isar!.clear();
     });
   }
 
   /// Get database statistics
   Future<Map<String, int>> getStats() async {
+    if (_isar == null) {
+      await init();
+    }
     return {
-      'civilizations': await isar.civilizations.count(),
-      'events': await isar.periodEvents.count(),
-      'artifacts': await isar.artifacts.count(),
-      'mediaFiles': await isar.mediaFiles.count(),
-      'connections': await isar.connections.count(),
+      'civilizations': await _isar!.civilizations.count(),
+      'events': await _isar!.periodEvents.count(),
+      'artifacts': await _isar!.artifacts.count(),
+      'mediaFiles': await _isar!.mediaFiles.count(),
+      'connections': await _isar!.connections.count(),
     };
   }
 }
