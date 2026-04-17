@@ -25,38 +25,9 @@ final eventsProvider = StreamProvider<List<PeriodEvent>>((ref) async* {
   yield* repo.watchAll();
 });
 
-/// Year Rows Provider (Stream)
-final yearRowsProvider = StreamProvider<List<YearRow>>((ref) async* {
-  print('📅 yearRowsProvider called');
-  await ref.watch(isarProvider.future);
-  final isarService = ref.watch(isarServiceProvider);
-  final isar = await isarService.init();
-  
-  // Get all year rows
-  final rows = await isar.yearRows.where().findAll();
-  yield rows;
-  
-  // Watch for changes
-  await for (final _ in isar.yearRows.watchLazy()) {
-    final updatedRows = await isar.yearRows.where().findAll();
-    yield updatedRows;
-  }
-});
-
-/// Year Row Map Provider (for quick lookup)
-final yearRowMapProvider = Provider<Map<int, YearRow>>((ref) {
-  final yearRowsAsync = ref.watch(yearRowsProvider);
-  return yearRowsAsync.when(
-    data: (rows) {
-      final map = <int, YearRow>{};
-      for (var row in rows) {
-        map[row.year] = row;
-      }
-      return map;
-    },
-    loading: () => {},
-    error: (_, __) => {},
-  );
+/// Year Rows Provider - Simple map for now
+final yearRowMapProvider = StateProvider<Map<int, YearRow>>((ref) {
+  return {};
 });
 
 /// Selected Civilization Provider
