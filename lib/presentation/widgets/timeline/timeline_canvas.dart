@@ -505,20 +505,45 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
             final startYear = event.startYear;
             final endYear = event.endYear ?? event.startYear;
             
-            // Find start and end year indices in the years list
-            final startYearIndex = years.indexOf(startYear);
-            if (startYearIndex == -1) return const SizedBox();
+            // Find which row the start year is in
+            int startRowIndex = -1;
+            for (int i = 0; i < years.length; i++) {
+              if (years[i] <= startYear && (i == years.length - 1 || years[i + 1] > startYear)) {
+                startRowIndex = i;
+                break;
+              }
+            }
             
-            final endYearIndex = years.indexOf(endYear);
-            final actualEndIndex = endYearIndex == -1 ? startYearIndex : endYearIndex;
+            if (startRowIndex == -1) {
+              // If start year is before first year in list, use first row
+              if (startYear >= years.first) {
+                startRowIndex = 0;
+              } else {
+                return const SizedBox();
+              }
+            }
             
-            // Calculate height - spans from start year to end year
-            final rowSpan = (actualEndIndex - startYearIndex).abs() + 1;
-            final barHeight = (rowSpan * AppConstants.yearHeight) - 8;
+            // Find which row the end year is in
+            int endRowIndex = startRowIndex;
+            for (int i = startRowIndex; i < years.length; i++) {
+              if (years[i] <= endYear) {
+                endRowIndex = i;
+              } else {
+                break;
+              }
+            }
             
-            // Position: stays in its own column, doesn't move horizontally
+            // Calculate height based on actual year span
+            final yearSpan = (endYear - startYear).abs();
+            final totalYearRange = (years.last - years.first).abs();
+            final totalPixelHeight = years.length * AppConstants.yearHeight;
+            
+            // Calculate proportional height
+            final barHeight = (yearSpan / totalYearRange) * totalPixelHeight;
+            
+            // Position: stays in its own column
             final left = AppConstants.axisWidth + (civIndex * AppConstants.columnWidth) + 4;
-            final top = AppConstants.headerHeight + (startYearIndex * AppConstants.yearHeight) + 4;
+            final top = AppConstants.headerHeight + (startRowIndex * AppConstants.yearHeight) + 4;
             final barWidth = AppConstants.columnWidth - 8;
             
             return Positioned(
@@ -580,7 +605,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (event.period != null && rowSpan > 2)
+                            if (event.period != null && barHeight > 60)
                               Text(
                                 event.period!,
                                 style: const TextStyle(
@@ -601,12 +626,12 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
-                                maxLines: rowSpan > 3 ? 6 : 3,
+                                maxLines: (barHeight / 20).floor(),
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                            if (rowSpan > 1)
+                            if (yearSpan > 0 && barHeight > 40)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Container(
@@ -616,7 +641,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    '${(endYear - startYear).abs()}y',
+                                    '${yearSpan}y',
                                     style: const TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
