@@ -142,10 +142,9 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
     );
     
     if (value == 'edit_row' || value == 'add_photo' || value == 'add_tag') {
-      // Get existing year row if any
-      final isarService = ref.read(isarServiceProvider);
-      final isar = await isarService.init();
-      final yearRow = await isar.yearRows.filter().yearEqualTo(year).findFirst();
+      // Get existing year row from state
+      final yearRowMap = ref.read(yearRowMapProvider);
+      final yearRow = yearRowMap[year];
       
       if (context.mounted) {
         showDialog(

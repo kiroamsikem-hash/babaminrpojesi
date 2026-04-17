@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../data/models/year_row.dart';
-import '../../../domain/providers/database_provider.dart';
+import '../../../domain/providers/timeline_provider.dart';
 
 /// Year Row Editor Dialog - Satır (Yıl) düzenleme
 class YearRowEditor extends ConsumerStatefulWidget {
@@ -97,9 +97,6 @@ class _YearRowEditorState extends ConsumerState<YearRowEditor> {
 
   Future<void> _save() async {
     try {
-      final isarService = ref.read(isarServiceProvider);
-      final isar = await isarService.init();
-      
       final yearRow = widget.yearRow ?? YearRow();
       yearRow.year = widget.year;
       yearRow.description = _descriptionController.text.trim();
@@ -112,9 +109,10 @@ class _YearRowEditorState extends ConsumerState<YearRowEditor> {
         yearRow.createdAt = DateTime.now();
       }
 
-      await isar.writeTxn(() async {
-        await isar.yearRows.put(yearRow);
-      });
+      // Update state provider
+      final yearRowMap = ref.read(yearRowMapProvider.notifier);
+      final currentMap = ref.read(yearRowMapProvider);
+      yearRowMap.state = {...currentMap, widget.year: yearRow};
 
       if (mounted) {
         Navigator.pop(context, true);
