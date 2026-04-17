@@ -180,18 +180,18 @@ class CsvParser {
 
   /// Determine period based on year
   String _determinePeriod(int year) {
-    if (year >= -3900 && year < -3000) return 'Erken Dönem';
+    if (year >= -4050 && year < -3000) return 'Erken Dönem';
     if (year >= -3000 && year < -1200) return 'Tunç Çağı';
-    if (year >= -1200 && year <= -500) return 'Demir Çağı';
+    if (year >= -1200 && year <= -550) return 'Demir Çağı';
     return 'Bilinmeyen Dönem';
   }
 
   /// Convert year to grid Y coordinate
   double _yearToGridY(int year) {
     // Normalize year to positive grid coordinate
-    // -3900 -> 0, -500 -> max
-    const minYear = -3900;
-    const maxYear = -500;
+    // -4050 -> 0, -550 -> max
+    const minYear = -4050;
+    const maxYear = -550;
     const yearRange = maxYear - minYear;
     
     return ((year - minYear) / yearRange) * 100;

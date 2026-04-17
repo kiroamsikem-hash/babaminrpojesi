@@ -339,6 +339,7 @@ class _TimelineCanvasState extends ConsumerState<TimelineCanvas> {
                     ? EventCard(
                         event: event,
                         civilization: civ,
+                        allCivilizations: widget.civilizations,
                         onTap: () => widget.onEventTap(event),
                       )
                     : const SizedBox(),

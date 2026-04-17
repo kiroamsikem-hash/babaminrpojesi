@@ -25,8 +25,8 @@ class TimelineSettings {
 
   TimelineSettings({
     this.yearStep = 50,
-    this.startYear = -3900,
-    this.endYear = -500,
+    this.startYear = -4050,
+    this.endYear = -550,
     this.showEmptyRows = false,
     this.showEmptyColumns = true,
     this.showGridLines = true,
@@ -286,9 +286,9 @@ class _TimelineSettingsDialogState extends ConsumerState<TimelineSettingsDialog>
                       spacing: 8,
                       children: [
                         _buildPresetChip('Tunç Çağı', -3300, -1200, notifier),
-                        _buildPresetChip('Demir Çağı', -1200, -500, notifier),
-                        _buildPresetChip('Tümü', -3900, -500, notifier),
-                        _buildPresetChip('Son 1000 Yıl', -1500, -500, notifier),
+                        _buildPresetChip('Demir Çağı', -1200, -550, notifier),
+                        _buildPresetChip('Tümü', -4050, -550, notifier),
+                        _buildPresetChip('Son 1000 Yıl', -1550, -550, notifier),
                       ],
                     ),
                     const SizedBox(height: 24),

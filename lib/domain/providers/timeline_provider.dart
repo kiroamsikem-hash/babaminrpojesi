@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/civilization.dart';
 import '../../data/models/period_event.dart';
+import '../widgets/settings/timeline_settings_dialog.dart';
 import 'database_provider.dart';
 
 /// All Civilizations Provider (Stream)
@@ -29,9 +30,10 @@ final selectedCivilizationProvider = StateProvider<int?>((ref) => null);
 /// Selected Event Provider
 final selectedEventProvider = StateProvider<PeriodEvent?>((ref) => null);
 
-/// Year Range Filter Provider
-final yearRangeProvider = StateProvider<({int min, int max})>((ref) {
-  return (min: -3900, max: -500);
+/// Year Range Filter Provider (now uses settings)
+final yearRangeProvider = Provider<({int min, int max})>((ref) {
+  final settings = ref.watch(timelineSettingsProvider);
+  return (min: settings.startYear, max: settings.endYear);
 });
 
 /// Search Query Provider
@@ -95,10 +97,8 @@ final timelineGridProvider = Provider<Map<int, Map<int, PeriodEvent>>>((ref) {
   return grid;
 });
 
-/// Year List Provider (sorted)
+/// Year List Provider (sorted, uses settings)
 final yearListProvider = Provider<List<int>>((ref) {
-  final events = ref.watch(filteredEventsProvider);
-  final years = events.map((e) => e.startYear).toSet().toList();
-  years.sort();
-  return years;
+  final settings = ref.watch(timelineSettingsProvider);
+  return settings.getYearsList();
 });
