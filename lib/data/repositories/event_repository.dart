@@ -8,21 +8,29 @@ class EventRepository {
 
   EventRepository(this._isarService);
 
-  Isar get _isar => _isarService.isar;
+  Future<Isar> get _isar async {
+    if (_isarService.isar == null || !_isarService.isar.isOpen) {
+      await _isarService.init();
+    }
+    return _isarService.isar;
+  }
 
   /// Get all events
   Future<List<PeriodEvent>> getAll() async {
-    return await _isar.periodEvents.where().sortByStartYear().findAll();
+    final isar = await _isar;
+    return await isar.periodEvents.where().sortByStartYear().findAll();
   }
 
   /// Get event by ID
   Future<PeriodEvent?> getById(int id) async {
-    return await _isar.periodEvents.get(id);
+    final isar = await _isar;
+    return await isar.periodEvents.get(id);
   }
 
   /// Get events by civilization
   Future<List<PeriodEvent>> getByCivilization(int civilizationId) async {
-    return await _isar.periodEvents
+    final isar = await _isar;
+    return await isar.periodEvents
         .filter()
         .civilizationIdEqualTo(civilizationId)
         .sortByStartYear()
@@ -31,7 +39,8 @@ class EventRepository {
 
   /// Get events by year range
   Future<List<PeriodEvent>> getByYearRange(int startYear, int endYear) async {
-    return await _isar.periodEvents
+    final isar = await _isar;
+    return await isar.periodEvents
         .filter()
         .startYearBetween(startYear, endYear)
         .sortByStartYear()
@@ -40,7 +49,8 @@ class EventRepository {
 
   /// Get events by period
   Future<List<PeriodEvent>> getByPeriod(String period) async {
-    return await _isar.periodEvents
+    final isar = await _isar;
+    return await isar.periodEvents
         .filter()
         .periodEqualTo(period)
         .sortByStartYear()
@@ -49,29 +59,33 @@ class EventRepository {
 
   /// Create event
   Future<int> create(PeriodEvent event) async {
-    return await _isar.writeTxn(() async {
-      return await _isar.periodEvents.put(event);
+    final isar = await _isar;
+    return await isar.writeTxn(() async {
+      return await isar.periodEvents.put(event);
     });
   }
 
   /// Update event
   Future<void> update(PeriodEvent event) async {
+    final isar = await _isar;
     event.updatedAt = DateTime.now();
-    await _isar.writeTxn(() async {
-      await _isar.periodEvents.put(event);
+    await isar.writeTxn(() async {
+      await isar.periodEvents.put(event);
     });
   }
 
   /// Delete event
   Future<bool> delete(int id) async {
-    return await _isar.writeTxn(() async {
-      return await _isar.periodEvents.delete(id);
+    final isar = await _isar;
+    return await isar.writeTxn(() async {
+      return await isar.periodEvents.delete(id);
     });
   }
 
   /// Search events by title
   Future<List<PeriodEvent>> search(String query) async {
-    return await _isar.periodEvents
+    final isar = await _isar;
+    return await isar.periodEvents
         .filter()
         .titleContains(query, caseSensitive: false)
         .or()
@@ -81,13 +95,15 @@ class EventRepository {
   }
 
   /// Watch all events (Stream)
-  Stream<List<PeriodEvent>> watchAll() {
-    return _isar.periodEvents.where().watch(fireImmediately: true);
+  Stream<List<PeriodEvent>> watchAll() async* {
+    final isar = await _isar;
+    yield* isar.periodEvents.where().watch(fireImmediately: true);
   }
 
   /// Watch events by civilization (Stream)
-  Stream<List<PeriodEvent>> watchByCivilization(int civilizationId) {
-    return _isar.periodEvents
+  Stream<List<PeriodEvent>> watchByCivilization(int civilizationId) async* {
+    final isar = await _isar;
+    yield* isar.periodEvents
         .filter()
         .civilizationIdEqualTo(civilizationId)
         .watch(fireImmediately: true);
@@ -95,12 +111,14 @@ class EventRepository {
 
   /// Get count
   Future<int> count() async {
-    return await _isar.periodEvents.count();
+    final isar = await _isar;
+    return await isar.periodEvents.count();
   }
 
   /// Get year range (min and max years)
   Future<Map<String, int>> getYearRange() async {
-    final events = await _isar.periodEvents.where().findAll();
+    final isar = await _isar;
+    final events = await isar.periodEvents.where().findAll();
     
     if (events.isEmpty) {
       return {'min': -3900, 'max': -500};
