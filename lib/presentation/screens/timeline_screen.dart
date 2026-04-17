@@ -24,6 +24,9 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
   Future<void> _initializeData() async {
     try {
+      // Wait for Isar to initialize
+      await ref.read(isarProvider.future);
+      
       final parser = ref.read(csvParserProvider);
       final stats = await ref.read(isarServiceProvider).getStats();
       
@@ -42,6 +45,46 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isarAsync = ref.watch(isarProvider);
+    
+    // Wait for Isar to initialize
+    return isarAsync.when(
+      data: (_) => _buildContent(context),
+      loading: () => const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Veritabanı başlatılıyor...'),
+            ],
+          ),
+        ),
+      ),
+      error: (error, stack) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Hata: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.invalidate(isarProvider);
+                },
+                child: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final selectedEvent = ref.watch(selectedEventProvider);
     final civilizationsAsync = ref.watch(civilizationsProvider);
     final eventsAsync = ref.watch(eventsProvider);
