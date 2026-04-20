@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../config/theme_v2.dart';
 import '../providers/auth_provider.dart';
 import '../providers/question_provider.dart';
+import '../providers/language_provider.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/recent_question_card.dart';
 import 'camera_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
+import 'video_lab_screen.dart';
+import 'flashcard_screen.dart';
+import 'study_planner_screen.dart';
+import 'socratic_mode_screen.dart';
+import 'graph_screen.dart';
+import 'history_screen.dart';
+import 'premium_screen.dart';
+import 'admin_panel_screen.dart';
+import 'page_scan_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -64,29 +75,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final questionProvider = context.watch<QuestionProvider>();
+    final languageProvider = context.watch<LanguageProvider>();
     final user = authProvider.user;
 
+    Widget currentScreen;
+    switch (_selectedIndex) {
+      case 0:
+        currentScreen = _buildHomeTab(user, questionProvider);
+        break;
+      case 1:
+        currentScreen = const ProfileScreen();
+        break;
+      case 2:
+        currentScreen = const HistoryScreen();
+        break;
+      default:
+        currentScreen = _buildHomeTab(user, questionProvider);
+    }
+
     return Scaffold(
-      body: SafeArea(
-        child: _selectedIndex == 0 ? _buildHomeTab(user, questionProvider) : _buildProfileTab(),
-      ),
+      body: SafeArea(child: currentScreen),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Ana Sayfa',
+            icon: const Icon(Icons.home_rounded),
+            label: languageProvider.translate('dashboard'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profil',
+            icon: const Icon(Icons.person_rounded),
+            label: languageProvider.translate('profile'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history_rounded),
-            label: 'Geçmiş',
+            icon: const Icon(Icons.history_rounded),
+            label: languageProvider.currentLanguage == 'tr' ? 'Geçmiş' : 'History',
           ),
         ],
       ),
@@ -104,6 +129,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: AppColors.primary,
             title: const Text('Ödev Asistanı'),
             actions: [
+              // Premium Button
+              IconButton(
+                icon: const Icon(Icons.star_rounded),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                  );
+                },
+                tooltip: 'Premium',
+              ),
+              // Admin Button (only for admin users)
+              if (user?.email == 'byazar1628@gmail.com' || user?.email == 'myazar483@gmail.com')
+                IconButton(
+                  icon: const Icon(Icons.admin_panel_settings_rounded),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
+                    );
+                  },
+                  tooltip: 'Admin Panel',
+                ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () {},
@@ -175,29 +223,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 childAspectRatio: 1.1,
               ),
               delegate: SliverChildListDelegate([
-                QuickActionCard(
+                _buildMinimalistCard(
+                  icon: Icons.document_scanner_rounded,
+                  title: 'Sayfa Tara',
+                  emoji: '📄',
+                  color: const Color(0xFF5C6BC0),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PageScanScreen()),
+                    );
+                  },
+                ),
+                _buildMinimalistCard(
                   icon: Icons.camera_alt_rounded,
-                  title: 'Kamera / Tarama',
-                  color: const Color(0xFF9B7EDE),
+                  title: 'Fotoğraf Çek',
+                  emoji: '📸',
+                  color: QuietTechColors.cardPurple,
                   onTap: () => _onQuickAction('camera'),
                 ),
-                QuickActionCard(
-                  icon: Icons.edit_note_rounded,
-                  title: 'Kompozisyon Yaz',
-                  color: const Color(0xFF4ECDC4),
-                  onTap: () => _onQuickAction('kompozisyon'),
-                ),
-                QuickActionCard(
+                _buildMinimalistCard(
                   icon: Icons.calculate_rounded,
-                  title: 'Matematik Çöz',
-                  color: const Color(0xFFFF6B9D),
+                  title: 'Matematik',
+                  emoji: '🔢',
+                  color: QuietTechColors.cardOrange,
                   onTap: () => _onQuickAction('matematik'),
                 ),
-                QuickActionCard(
+                _buildMinimalistCard(
                   icon: Icons.translate_rounded,
-                  title: 'Çeviri Yap',
-                  color: const Color(0xFF4A90E2),
+                  title: 'Çeviri',
+                  emoji: '🌍',
+                  color: QuietTechColors.cardBlue,
                   onTap: () => _onQuickAction('ceviri'),
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.edit_note_rounded,
+                  title: 'Kompozisyon',
+                  emoji: '✍️',
+                  color: QuietTechColors.cardGreen,
+                  onTap: () => _onQuickAction('kompozisyon'),
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.video_library_rounded,
+                  title: 'Video Lab',
+                  emoji: '🎬',
+                  color: QuietTechColors.cardPink,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const VideoLabScreen()),
+                    );
+                  },
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.style_rounded,
+                  title: 'Akıllı Kartlar',
+                  emoji: '🎴',
+                  color: QuietTechColors.cardTeal,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FlashcardScreen()),
+                    );
+                  },
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.event_note_rounded,
+                  title: 'Çalışma Planı',
+                  emoji: '🎯',
+                  color: QuietTechColors.cardRed,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StudyPlannerScreen()),
+                    );
+                  },
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.psychology_rounded,
+                  title: 'Sokratik Öğrenme',
+                  emoji: '🤔',
+                  color: const Color(0xFF7E57C2),
+                  onTap: () {
+                    _showSocraticDialog();
+                  },
+                ),
+                _buildMinimalistCard(
+                  icon: Icons.show_chart_rounded,
+                  title: 'Grafik Çizim',
+                  emoji: '📊',
+                  color: const Color(0xFF26A69A),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const GraphScreen()),
+                    );
+                  },
                 ),
               ]),
             ),
@@ -268,9 +389,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return const ProfileScreen();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _showSocraticDialog() {
+    final controller = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('🤔 Sokratik Öğrenme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Direkt cevap vermiyorum! Seni düşündürerek öğretiyorum.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Sorunuzu yazın...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SocraticModeScreen(
+                      question: controller.text.trim(),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('Başla'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMinimalistCard({
+    required IconData icon,
+    required String title,
+    required String emoji,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [QuietTechColors.softShadow],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              emoji,
+              style: const TextStyle(fontSize: 36),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

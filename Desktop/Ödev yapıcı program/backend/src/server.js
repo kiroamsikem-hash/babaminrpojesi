@@ -42,6 +42,7 @@ app.use('/api/flashcards', require('./routes/flashcard.routes'));
 app.use('/api/study', require('./routes/study.routes'));
 app.use('/api/premium', require('./routes/premium.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/page-scan', require('./routes/page_scan.routes'));
 
 // Health check
 app.get('/health', (req, res) => {
