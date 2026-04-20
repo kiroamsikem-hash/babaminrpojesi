@@ -75,7 +75,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       body: Container(
-        color: QuietTechColors.primary,
+        decoration: const BoxDecoration(
+          gradient: QuietTechColors.primaryGradient,
+        ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -89,7 +91,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [QuietTechColors.softShadow],
+                      boxShadow: [QuietTechColors.cardShadow],
                     ),
                     child: const Center(
                       child: Text('🎓', style: TextStyle(fontSize: 40)),
@@ -114,7 +116,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [QuietTechColors.softShadow],
+                      boxShadow: [QuietTechColors.cardShadow],
                     ),
                     child: Form(
                       key: _formKey,

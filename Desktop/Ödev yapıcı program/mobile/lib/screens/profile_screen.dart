@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/question_provider.dart';
+import '../providers/theme_provider.dart';
+import '../providers/language_provider.dart';
 import '../config/theme.dart';
 import 'auth_screen.dart';
 
@@ -96,7 +98,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        user.isPremium ? 'Premium' : 'Ücretsiz',
+                        user.isPremium 
+                            ? '⭐ Premium ${user.premiumTier ?? ""}' 
+                            : '🆓 Ücretsiz',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -106,6 +110,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                    if (user.isAdmin) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '👑 Admin',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.purple,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -154,6 +179,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Icons.edit_outlined,
                     () => _showEditProfileDialog(context, authProvider),
                   ),
+                  const Divider(height: 1),
+                  _buildLanguageSelector(context),
+                  const Divider(height: 1),
+                  _buildThemeSwitcher(context),
                   const Divider(height: 1),
                   _buildSettingTile(
                     'Şifre Değiştir',
@@ -223,6 +252,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: AppTheme.textSecondary,
       ),
       onTap: onTap,
+    );
+  }
+
+  Widget _buildThemeSwitcher(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    
+    return ListTile(
+      leading: Icon(
+        themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+        color: AppTheme.textSecondary,
+      ),
+      title: const Text(
+        'Karanlık Tema',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppTheme.textPrimary,
+        ),
+      ),
+      trailing: Switch(
+        value: themeProvider.isDarkMode,
+        onChanged: (_) => themeProvider.toggleTheme(),
+        activeColor: AppTheme.primary,
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(BuildContext context) {
+    final languageProvider = context.watch<LanguageProvider>();
+    
+    return ListTile(
+      leading: const Icon(
+        Icons.language,
+        color: AppTheme.textSecondary,
+      ),
+      title: const Text(
+        'Dil / Language',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppTheme.textPrimary,
+        ),
+      ),
+      trailing: DropdownButton<String>(
+        value: languageProvider.currentLanguage,
+        underline: const SizedBox(),
+        items: const [
+          DropdownMenuItem(value: 'tr', child: Text('🇹🇷 Türkçe')),
+          DropdownMenuItem(value: 'en', child: Text('🇬🇧 English')),
+        ],
+        onChanged: (value) {
+          if (value != null) {
+            languageProvider.setLanguage(value);
+          }
+        },
+      ),
     );
   }
 

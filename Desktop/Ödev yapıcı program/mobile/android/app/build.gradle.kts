@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.odev_asistani"
+    namespace = "com.melihy.kiwo"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -19,11 +19,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.odev_asistani"
+        applicationId = "com.melihy.kiwo"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
     }
 
     buildTypes {

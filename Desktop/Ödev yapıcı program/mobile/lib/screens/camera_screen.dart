@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import 'dart:io';
 import '../config/theme.dart';
 import '../providers/question_provider.dart';
+import '../providers/language_provider.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import 'chat_screen.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -17,6 +20,7 @@ class _CameraScreenState extends State<CameraScreen> {
   File? _imageFile;
   bool _isProcessing = false;
   final ImagePicker _picker = ImagePicker();
+  final ApiService _apiService = ApiService();
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -37,29 +41,41 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _processImage() async {
+  Future<void> _processImageDirectly() async {
     if (_imageFile == null) return;
 
     setState(() => _isProcessing = true);
 
     try {
-      final questionProvider = context.read<QuestionProvider>();
-      final extractedText = await questionProvider.performOCR(_imageFile!.path);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+
+      // Fotoğrafı direkt backend'e gönder
+      final response = await _apiService.uploadImage(
+        '/ai/solve-image',
+        _imageFile!.path,
+      );
 
       if (!mounted) return;
 
-      // Navigate to chat with extracted text
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ChatScreen(
-            questionType: 'genel',
-            initialQuestion: extractedText,
+      if (response['success']) {
+        // Çözümü chat ekranında göster
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              questionType: 'genel',
+              initialQuestion: response['data']['question'] ?? '',
+              initialAnswer: response['data']['answer'] ?? '',
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        throw Exception(response['message'] ?? 'Analiz başarısız');
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isProcessing = false);
-      _showError('OCR işlemi başarısız: $e');
+      _showError('Fotoğraf analizi başarısız: $e');
     }
   }
 
@@ -72,17 +88,38 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  void _showCropDialog() {
+    // Basit kırpma UI'ı - gelişmiş kırpma için image_cropper paketi kullanılabilir
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Kırpma'),
+        content: const Text('Kırpma özelliği yakında eklenecek'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final languageProvider = context.watch<LanguageProvider>();
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fotoğraf Tarama'),
+        title: Text(languageProvider.translate('photo_scan')),
       ),
       body: _imageFile == null ? _buildPickerView() : _buildPreviewView(),
     );
   }
 
   Widget _buildPickerView() {
+    final languageProvider = context.watch<LanguageProvider>();
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -93,10 +130,10 @@ class _CameraScreenState extends State<CameraScreen> {
             color: AppColors.primary,
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Sorunun fotoğrafını çek\nveya galeriden seç',
+          Text(
+            languageProvider.translate('take_photo_or_select'),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               color: AppColors.textSecondary,
             ),
@@ -111,7 +148,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => _pickImage(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('Kamera Aç'),
+                    label: Text(languageProvider.translate('open_camera')),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -120,7 +157,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _pickImage(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library),
-                    label: const Text('Galeriden Seç'),
+                    label: Text(languageProvider.translate('select_from_gallery')),
                   ),
                 ),
               ],
@@ -132,6 +169,8 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Widget _buildPreviewView() {
+    final languageProvider = context.watch<LanguageProvider>();
+    
     return Column(
       children: [
         Expanded(
@@ -158,22 +197,35 @@ class _CameraScreenState extends State<CameraScreen> {
             ],
           ),
           child: SafeArea(
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isProcessing
-                        ? null
-                        : () => setState(() => _imageFile = null),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Yeniden Çek'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isProcessing
+                            ? null
+                            : () => setState(() => _imageFile = null),
+                        icon: const Icon(Icons.refresh),
+                        label: Text(languageProvider.translate('retake')),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isProcessing ? null : _showCropDialog,
+                        icon: const Icon(Icons.crop),
+                        label: const Text('Kırp'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _isProcessing ? null : _processImage,
+                    onPressed: _isProcessing ? null : _processImageDirectly,
                     icon: _isProcessing
                         ? const SizedBox(
                             width: 20,
@@ -184,8 +236,13 @@ class _CameraScreenState extends State<CameraScreen> {
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Icon(Icons.check),
-                    label: Text(_isProcessing ? 'İşleniyor...' : 'Devam Et'),
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(_isProcessing 
+                        ? 'Analiz ediliyor...'
+                        : 'Fotoğrafı Analiz Et'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
                   ),
                 ),
               ],

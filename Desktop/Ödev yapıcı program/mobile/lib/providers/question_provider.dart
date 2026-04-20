@@ -39,7 +39,7 @@ class QuestionProvider with ChangeNotifier {
   Future<Question> solveQuestion({
     required String question,
     required String type,
-    String? educationLevel,
+    int? educationLevel,
   }) async {
     _isLoading = true;
     _error = null;
@@ -49,7 +49,7 @@ class QuestionProvider with ChangeNotifier {
       final response = await _apiService.post('/ai/solve', {
         'question': question,
         'type': type,
-        'educationLevel': educationLevel ?? 'lise',
+        'educationLevel': educationLevel?.toString() ?? '9',
       });
 
       if (response['success']) {
@@ -89,7 +89,7 @@ class QuestionProvider with ChangeNotifier {
     required String topic,
     int wordCount = 300,
     String tone = 'akademik',
-    String? educationLevel,
+    int? educationLevel,
   }) async {
     _isLoading = true;
     _error = null;
@@ -100,7 +100,7 @@ class QuestionProvider with ChangeNotifier {
         'topic': topic,
         'wordCount': wordCount,
         'tone': tone,
-        'educationLevel': educationLevel ?? 'lise',
+        'educationLevel': educationLevel?.toString() ?? '9',
       });
 
       if (response['success']) {

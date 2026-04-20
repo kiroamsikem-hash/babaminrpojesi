@@ -3,18 +3,22 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/question_model.dart';
 import '../providers/question_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/quick_action_button.dart';
 
 class ChatScreen extends StatefulWidget {
   final String questionType;
   final String? initialQuestion;
+  final String? initialAnswer;
   final Question? existingQuestion;
 
   const ChatScreen({
     super.key,
     required this.questionType,
     this.initialQuestion,
+    this.initialAnswer,
     this.existingQuestion,
   });
 
@@ -26,33 +30,77 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
-  Question? _currentQuestion;
+  final List<Map<String, dynamic>> _messages = []; // Sohbet geçmişi
+  String _loadingMessage = 'Düşünüyor...';
 
   @override
   void initState() {
     super.initState();
     if (widget.existingQuestion != null) {
-      _currentQuestion = widget.existingQuestion;
+      _messages.add({
+        'type': 'user',
+        'text': widget.existingQuestion!.question,
+      });
+      _messages.add({
+        'type': 'ai',
+        'text': widget.existingQuestion!.answer,
+      });
     } else if (widget.initialQuestion != null) {
-      _sendMessage(widget.initialQuestion!);
+      if (widget.initialAnswer != null) {
+        // Direkt fotoğraf analizi sonucu
+        _messages.add({
+          'type': 'user',
+          'text': widget.initialQuestion!,
+        });
+        _messages.add({
+          'type': 'ai',
+          'text': widget.initialAnswer!,
+        });
+      } else {
+        _sendMessage(widget.initialQuestion!);
+      }
     }
   }
 
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
-    setState(() => _isLoading = true);
+    // Kullanıcı mesajını ekle
+    setState(() {
+      _messages.add({
+        'type': 'user',
+        'text': message,
+      });
+      _isLoading = true;
+      _loadingMessage = 'Düşünüyor...';
+    });
     _messageController.clear();
+    _scrollToBottom();
 
     try {
+      // Durum mesajlarını değiştir
+      await Future.delayed(const Duration(milliseconds: 800));
+      setState(() => _loadingMessage = 'Soru analiz ediliyor...');
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      setState(() => _loadingMessage = 'Çözüm hazırlanıyor...');
+
       final questionProvider = context.read<QuestionProvider>();
+      final authProvider = context.read<AuthProvider>();
+      final userGrade = authProvider.user?.grade ?? 9;
+      
       final result = await questionProvider.solveQuestion(
         question: message,
         type: widget.questionType,
+        educationLevel: userGrade,
       );
 
+      // AI cevabını ekle
       setState(() {
-        _currentQuestion = result;
+        _messages.add({
+          'type': 'ai',
+          'text': result.answer,
+        });
         _isLoading = false;
       });
 
@@ -64,26 +112,30 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _simplifyExplanation() async {
-    if (_currentQuestion == null) return;
+    if (_messages.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadingMessage = 'Basitleştiriliyor...';
+    });
 
     try {
       final questionProvider = context.read<QuestionProvider>();
+      final lastAiMessage = _messages.lastWhere((m) => m['type'] == 'ai');
+      
       final simplified = await questionProvider.simplifyExplanation(
-        _currentQuestion!.answer,
+        lastAiMessage['text'],
       );
 
       setState(() {
-        _currentQuestion = Question(
-          id: _currentQuestion!.id,
-          type: _currentQuestion!.type,
-          question: _currentQuestion!.question,
-          answer: simplified,
-          createdAt: _currentQuestion!.createdAt,
-        );
+        _messages.add({
+          'type': 'ai',
+          'text': simplified,
+        });
         _isLoading = false;
       });
+      
+      _scrollToBottom();
     } catch (e) {
       setState(() => _isLoading = false);
       _showError(e.toString());
@@ -112,15 +164,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getTypeTitle() {
+    final languageProvider = context.read<LanguageProvider>();
     switch (widget.questionType) {
       case 'matematik':
-        return 'Matematik Çözücü';
+        return languageProvider.translate('math_problem');
       case 'kompozisyon':
-        return 'Kompozisyon Yazıcı';
+        return languageProvider.translate('composition');
       case 'ceviri':
-        return 'Çeviri';
+        return languageProvider.translate('translate');
       default:
-        return 'Sohbet';
+        return languageProvider.translate('chat');
     }
   }
 
@@ -132,9 +185,7 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Show options menu
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -142,18 +193,104 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           // Messages Area
           Expanded(
-            child: _currentQuestion == null && !_isLoading
+            child: _messages.isEmpty && !_isLoading
                 ? _buildEmptyState()
-                : _buildMessagesArea(),
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _messages.length && _isLoading) {
+                        return _buildLoadingMessage();
+                      }
+                      final message = _messages[index];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
           ),
 
-          // Quick Actions (when answer is shown)
-          if (_currentQuestion != null && !_isLoading)
+          // Quick Actions
+          if (_messages.isNotEmpty && !_isLoading)
             _buildQuickActions(),
 
           // Input Area
           _buildInputArea(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(Map<String, dynamic> message) {
+    final isUser = message['type'] == 'user';
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isUser ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          message['text'],
+          style: TextStyle(
+            color: isUser ? Colors.white : AppColors.textPrimary,
+            fontSize: 15,
+            height: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingMessage() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _loadingMessage,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -206,40 +343,6 @@ class _ChatScreenState extends State<ChatScreen> {
       default:
         return 'Sorunuzu yazın\nYardımcı olalım!';
     }
-  }
-
-  Widget _buildMessagesArea() {
-    return ListView(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      children: [
-        // User Question
-        if (_currentQuestion != null)
-          MessageBubble(
-            message: _currentQuestion!.question,
-            isUser: true,
-          ),
-
-        const SizedBox(height: 16),
-
-        // AI Answer
-        if (_currentQuestion != null)
-          MessageBubble(
-            message: _currentQuestion!.answer,
-            isUser: false,
-            isMarkdown: true,
-          ),
-
-        // Loading Indicator
-        if (_isLoading)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
-      ],
-    );
   }
 
   Widget _buildQuickActions() {

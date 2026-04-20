@@ -212,38 +212,44 @@ class ApiService {
   Map<String, dynamic> _handleResponse(http.Response response) {
     print('📥 Response status: ${response.statusCode}');
     print('📥 Response headers: ${response.headers}');
-    print('📥 Response body (first 500 chars): ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+    print('📥 Response body (first 1000 chars): ${response.body.substring(0, response.body.length > 1000 ? 1000 : response.body.length)}');
     
     // HTML response kontrolü
     if (response.body.trim().startsWith('<!DOCTYPE') || response.body.trim().startsWith('<html')) {
       print('❌ Backend HTML döndürdü!');
-      throw Exception('Backend çalışmıyor veya yanlış endpoint. HTML yanıt alındı.');
+      throw Exception('Backend çalışmıyor. Lütfen daha sonra tekrar deneyin.');
     }
 
     // Empty response kontrolü
     if (response.body.trim().isEmpty) {
       print('❌ Backend boş yanıt döndürdü!');
-      throw Exception('Backend boş yanıt döndürdü');
+      throw Exception('Backend boş yanıt döndürdü. Lütfen tekrar deneyin.');
     }
 
+    // JSON parse dene
+    Map<String, dynamic>? data;
     try {
-      final data = json.decode(response.body);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return data;
-      } else {
-        // Backend'den gelen hata mesajını göster
-        final errorMessage = data['message'] ?? data['error'] ?? 'İstek başarısız';
-        print('❌ Backend error: $errorMessage');
-        throw Exception(errorMessage);
-      }
+      data = json.decode(response.body);
     } catch (e) {
-      if (e is FormatException) {
-        print('❌ JSON parse hatası!');
-        print('❌ Response body: ${response.body}');
-        throw Exception('Backend geçersiz JSON döndürdü. Lütfen backend loglarını kontrol edin.');
+      print('❌ JSON parse hatası!');
+      print('❌ Response body: ${response.body}');
+      
+      // Backend'den text mesaj gelmiş olabilir
+      if (response.statusCode >= 400) {
+        throw Exception('İşlem başarısız. Lütfen tekrar deneyin.');
+      } else {
+        throw Exception('Geçersiz yanıt formatı. Lütfen tekrar deneyin.');
       }
-      rethrow;
+    }
+
+    // Success kontrolü
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    } else {
+      // Backend'den gelen hata mesajını göster
+      final errorMessage = data['message'] ?? data['error'] ?? 'İşlem başarısız';
+      print('❌ Backend error: $errorMessage');
+      throw Exception(errorMessage);
     }
   }
 

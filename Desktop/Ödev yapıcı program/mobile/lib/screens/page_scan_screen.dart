@@ -100,29 +100,58 @@ class _PageScanScreenState extends State<PageScanScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      print('📤 Sayfa tarama başlatılıyor...');
       final response = await _apiService.uploadImage(
         '/page-scan/scan',
         _capturedImage!.path,
       );
 
+      print('📥 Sayfa tarama yanıtı: ${response}');
+
       if (mounted) {
-        if (response['success']) {
+        if (response['success'] == true) {
+          final questions = response['data']?['questions'] ?? [];
           setState(() {
-            _detectedQuestions = response['data']['questions'] ?? [];
+            _detectedQuestions = questions;
             _isProcessing = false;
           });
 
           if (_detectedQuestions.isEmpty) {
-            _showError('Sayfada soru tespit edilemedi');
+            _showError('Sayfada soru tespit edilemedi. Lütfen daha net bir fotoğraf çekin.');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${_detectedQuestions.length} soru bulundu!'),
+                backgroundColor: Colors.green,
+              ),
+            );
           }
         } else {
-          throw Exception(response['message'] ?? 'Tarama başarısız');
+          final errorMessage = response['message'] ?? 'Tarama başarısız';
+          throw Exception(errorMessage);
         }
       }
     } catch (e) {
+      print('❌ Sayfa tarama hatası: $e');
       if (mounted) {
         setState(() => _isProcessing = false);
-        _showError('Sayfa taranamadı: $e');
+        
+        String errorMessage = 'Sayfa taranamadı';
+        final errorStr = e.toString();
+        
+        if (errorStr.contains('çok küçük') || errorStr.contains('boş')) {
+          errorMessage = 'Fotoğraf çok küçük veya boş. Lütfen geçerli bir fotoğraf çekin.';
+        } else if (errorStr.contains('soru bulunamadı') || errorStr.contains('tespit edilemedi')) {
+          errorMessage = 'Sayfada soru bulunamadı. Lütfen soruların net göründüğünden emin olun.';
+        } else if (errorStr.contains('timeout') || errorStr.contains('zaman aşımı')) {
+          errorMessage = 'İşlem zaman aşımına uğradı. Lütfen tekrar deneyin.';
+        } else if (errorStr.contains('internet') || errorStr.contains('bağlantı')) {
+          errorMessage = 'İnternet bağlantısı yok. Lütfen bağlantınızı kontrol edin.';
+        } else {
+          errorMessage = 'Sayfa taranamadı. Lütfen tekrar deneyin.';
+        }
+        
+        _showError(errorMessage);
       }
     }
   }
