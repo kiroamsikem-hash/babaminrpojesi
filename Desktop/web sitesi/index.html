@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Logger - Güvenli Link Oluşturucu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Ana Sayfa -->
+    <div class="container" id="homePage">
+        <div class="header">
+            <h1><i class="fa-solid fa-link"></i> IP Logger</h1>
+            <p class="subtitle">Güvenli ve Anonim Link Takip Sistemi</p>
+        </div>
+
+        <div class="main-card">
+            <div class="card-header">
+                <h2>Yeni Link Oluştur</h2>
+                <p>Takip linki oluşturmak için aşağıdaki adımları takip edin</p>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fa-solid fa-tag"></i> Link Başlığı (Opsiyonel)</label>
+                <input type="text" id="linkTitle" placeholder="Örn: Proje Linki, Anket vb.">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fa-solid fa-globe"></i> Yönlendirilecek URL (Opsiyonel)</label>
+                <input type="url" id="redirectUrl" placeholder="https://example.com">
+                <small>Boş bırakırsanız basit bir sayfa gösterilir</small>
+            </div>
+
+            <div class="terms-box">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="acceptTerms">
+                    <span class="checkmark"></span>
+                    <span class="terms-text">
+                        <a href="#" onclick="showTerms(); return false;">Kullanım Şartları</a>'nı okudum ve kabul ediyorum
+                    </span>
+                </label>
+            </div>
+
+            <button class="btn-primary" onclick="createLink()">
+                <i class="fa-solid fa-plus"></i> Link Oluştur
+            </button>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h3>Güvenli</h3>
+                <p>Verileriniz şifrelenir</p>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-eye"></i>
+                <h3>Detaylı</h3>
+                <p>IP, konum, cihaz bilgisi</p>
+            </div>
+            <div class="feature-item">
+                <i class="fa-solid fa-clock"></i>
+                <h3>Anlık</h3>
+                <p>Gerçek zamanlı takip</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Oluşturuldu Sayfası -->
+    <div class="container hidden" id="linkCreatedPage">
+        <div class="success-card">
+            <div class="success-icon">
+                <i class="fa-solid fa-check-circle"></i>
+            </div>
+            <h2>Link Başarıyla Oluşturuldu!</h2>
+            <p>Aşağıdaki linki paylaşabilirsiniz</p>
+
+            <div class="link-box">
+                <input type="text" id="generatedLink" readonly>
+                <button onclick="copyLink()">
+                    <i class="fa-solid fa-copy"></i> Kopyala
+                </button>
+            </div>
+
+            <div class="tracking-link-box">
+                <p><strong>Takip Linkiniz:</strong></p>
+                <input type="text" id="trackingLink" readonly>
+                <button onclick="copyTrackingLink()">
+                    <i class="fa-solid fa-copy"></i> Kopyala
+                </button>
+                <small>Bu linki kimseyle paylaşmayın! Sadece siz görebilirsiniz.</small>
+            </div>
+
+            <button class="btn-secondary" onclick="goHome()">
+                <i class="fa-solid fa-arrow-left"></i> Yeni Link Oluştur
+            </button>
+        </div>
+    </div>
+
+    <!-- Kullanım Şartları Modal -->
+    <div class="modal hidden" id="termsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Kullanım Şartları ve Sorumluluk Reddi</h2>
+                <button class="close-btn" onclick="closeTerms()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h3>1. Genel Hükümler</h3>
+                <p>Bu hizmeti kullanarak aşağıdaki şartları kabul etmiş sayılırsınız.</p>
+
+                <h3>2. Kullanıcı Sorumluluğu</h3>
+                <p>• Bu servisi kullanarak oluşturduğunuz linklerden tamamen SİZ sorumlusunuz.</p>
+                <p>• Toplanan verilerin kullanımından doğacak her türlü yasal sorumluluk link oluşturan kişiye aittir.</p>
+                <p>• Yasadışı amaçlarla kullanım kesinlikle yasaktır.</p>
+
+                <h3>3. Platform Sorumluluğu</h3>
+                <p>• Platform sadece teknik altyapı sağlar.</p>
+                <p>• Kullanıcıların oluşturduğu linklerden ve toplanan verilerden platform sorumlu DEĞİLDİR.</p>
+                <p>• Platform, yasalara aykırı kullanım tespit edildiğinde linkleri kapatma hakkını saklı tutar.</p>
+
+                <h3>4. Veri Gizliliği</h3>
+                <p>• Toplanan veriler sadece link oluşturan kişi tarafından görülebilir.</p>
+                <p>• Veriler şifrelenmiş olarak saklanır.</p>
+                <p>• Platform, toplanan verileri üçüncü şahıslarla paylaşmaz.</p>
+
+                <h3>5. Yasal Uyarı</h3>
+                <p>• Bu hizmet sadece yasal ve meşru amaçlar için kullanılmalıdır.</p>
+                <p>• Kişisel verilerin korunması kanunlarına uygun hareket etmek kullanıcının sorumluluğundadır.</p>
+                <p>• Taciz, dolandırıcılık veya yasadışı faaliyetler için kullanım yasaktır.</p>
+
+                <h3>6. Sorumluluk Reddi</h3>
+                <p><strong>BU HİZMETİ KULLANARAK, OLUŞTURDUĞUNUZ LİNKLERDEN VE TOPLANAN VERİLERDEN DOĞACAK TÜM YASAL SORUMLULUĞU KABUL ETMİŞ SAYILIRSINIZ. PLATFORM HİÇBİR ŞEKILDE SORUMLU TUTULAMAZ.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="acceptTermsFromModal()">
+                    Kabul Ediyorum
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

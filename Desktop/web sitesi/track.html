@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Takip Paneli - IP Logger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="track-style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fa-solid fa-chart-line"></i> Takip Paneli</h1>
+            <button class="btn-home" onclick="window.location.href='index.html'">
+                <i class="fa-solid fa-house"></i> Ana Sayfa
+            </button>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-eye"></i></div>
+                <div class="stat-value" id="totalVisits">0</div>
+                <div class="stat-label">Toplam Ziyaret</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-value" id="uniqueVisitors">0</div>
+                <div class="stat-label">Benzersiz Ziyaretçi</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+                <div class="stat-value" id="lastVisit">-</div>
+                <div class="stat-label">Son Ziyaret</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-globe"></i></div>
+                <div class="stat-value" id="countries">0</div>
+                <div class="stat-label">Farklı Ülke</div>
+            </div>
+        </div>
+
+        <!-- Harita Bölümü -->
+        <div class="map-section">
+            <h2><i class="fa-solid fa-map-marked-alt"></i> Ziyaretçi Haritası</h2>
+            <div id="map"></div>
+        </div>
+
+        <div class="visitors-section">
+            <h2><i class="fa-solid fa-list"></i> Ziyaretçi Detayları</h2>
+            <div id="visitorsList"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="track-script.js"></script>
+</body>
+</html>
