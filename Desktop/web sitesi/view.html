@@ -199,34 +199,29 @@
                 console.error('IP bilgisi alınamadı:', error);
             }
 
-            // Backend'e kaydet
-            try {
-                await fetch('/api/save-visit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        linkId: linkId,
-                        visitorData: visitorData
-                    })
-                });
-            } catch (error) {
-                console.error('Veri kaydedilemedi:', error);
-            }
+            // Tracking ID'yi bul
+            const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{}');
+            const trackingId = linkData.trackingId;
 
-            // LocalStorage'a da yedek kaydet
+            // Veriyi kaydet
             try {
-                const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{"visits":[]}');
+                // Link data'yı güncelle
                 if (!linkData.visits) linkData.visits = [];
                 linkData.visits.push(visitorData);
                 localStorage.setItem(`link_${linkId}`, JSON.stringify(linkData));
+                
+                // Tracking ID ile de kaydet (eğer varsa)
+                if (trackingId) {
+                    const trackingData = JSON.parse(localStorage.getItem(`trackdata_${trackingId}`) || '{"visits":[]}');
+                    if (!trackingData.visits) trackingData.visits = [];
+                    trackingData.visits.push(visitorData);
+                    localStorage.setItem(`trackdata_${trackingId}`, JSON.stringify(trackingData));
+                }
             } catch (e) {
-                console.error('LocalStorage hatası:', e);
+                console.error('Veri kaydetme hatası:', e);
             }
 
             // Yönlendirme yap
-            const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{}');
             if (linkData && linkData.redirectUrl) {
                 setTimeout(() => {
                     window.location.href = linkData.redirectUrl;
