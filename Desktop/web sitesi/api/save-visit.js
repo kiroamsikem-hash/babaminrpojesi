@@ -1,6 +1,5 @@
 // Vercel Serverless Function - Ziyaretçi verilerini kaydet
-// Basit in-memory storage (demo için)
-const visits = new Map();
+import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -19,25 +18,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { linkId, visitorData } = req.body;
+    const { linkId, trackingId, visitorData } = req.body;
 
-    if (!linkId || !visitorData) {
+    if (!linkId || !trackingId || !visitorData) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // In-memory storage'a kaydet
-    if (!visits.has(linkId)) {
-      visits.set(linkId, []);
-    }
-    visits.get(linkId).push(visitorData);
+    // NeonDB bağlantısı
+    const sql = neon(process.env.DATABASE_URL);
+    
+    // Veriyi kaydet
+    await sql`
+      INSERT INTO visits (link_id, tracking_id, visitor_data, created_at)
+      VALUES (${linkId}, ${trackingId}, ${JSON.stringify(visitorData)}, NOW())
+    `;
     
     return res.status(200).json({ 
       success: true,
-      message: 'Visit saved successfully',
-      totalVisits: visits.get(linkId).length
+      message: 'Visit saved successfully'
     });
   } catch (error) {
     console.error('Error saving visit:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 }

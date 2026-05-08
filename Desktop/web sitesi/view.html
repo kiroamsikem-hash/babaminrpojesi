@@ -199,18 +199,38 @@
                 console.error('IP bilgisi alınamadı:', error);
             }
 
-            // Tracking ID'yi bul
-            const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{}');
-            const trackingId = linkData.trackingId;
-
-            // Veriyi kaydet
+            // Database'e kaydet
             try {
-                // Link data'yı güncelle
+                // Önce link bilgisini al
+                const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{}');
+                const trackingId = linkData.trackingId;
+
+                if (trackingId) {
+                    await fetch('/api/save-visit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            linkId: linkId,
+                            trackingId: trackingId,
+                            visitorData: visitorData
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error('Database kayıt hatası:', error);
+            }
+
+            // LocalStorage'a da yedek kaydet
+            try {
+                const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{"visits":[]}');
                 if (!linkData.visits) linkData.visits = [];
                 linkData.visits.push(visitorData);
                 localStorage.setItem(`link_${linkId}`, JSON.stringify(linkData));
                 
-                // Tracking ID ile de kaydet (eğer varsa)
+                // Tracking ID ile de kaydet
+                const trackingId = linkData.trackingId;
                 if (trackingId) {
                     const trackingData = JSON.parse(localStorage.getItem(`trackdata_${trackingId}`) || '{"visits":[]}');
                     if (!trackingData.visits) trackingData.visits = [];
@@ -218,10 +238,11 @@
                     localStorage.setItem(`trackdata_${trackingId}`, JSON.stringify(trackingData));
                 }
             } catch (e) {
-                console.error('Veri kaydetme hatası:', e);
+                console.error('LocalStorage hatası:', e);
             }
 
             // Yönlendirme yap
+            const linkData = JSON.parse(localStorage.getItem(`link_${linkId}`) || '{}');
             if (linkData && linkData.redirectUrl) {
                 setTimeout(() => {
                     window.location.href = linkData.redirectUrl;

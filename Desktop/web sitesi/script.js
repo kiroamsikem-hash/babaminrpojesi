@@ -42,7 +42,7 @@ function showToast(message, type = 'success') {
 }
 
 // Link oluştur
-function createLink() {
+async function createLink() {
     const title = document.getElementById('linkTitle').value;
     const redirectUrl = document.getElementById('redirectUrl').value;
     const acceptTerms = document.getElementById('acceptTerms').checked;
@@ -61,7 +61,31 @@ function createLink() {
     const generatedLink = `${baseUrl}/v/${linkId}`;
     const trackingLink = `${baseUrl}/t/${trackingId}`;
 
-    // LocalStorage'a kaydet (gerçek uygulamada backend'e kaydedilir)
+    // Database'e kaydet
+    try {
+        const response = await fetch('/api/create-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                linkId,
+                trackingId,
+                title: title || 'İsimsiz Link',
+                redirectUrl: redirectUrl || ''
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Link oluşturulamadı');
+        }
+    } catch (error) {
+        console.error('Database kayıt hatası:', error);
+        showToast('Link oluşturulurken hata oluştu!', 'error');
+        return;
+    }
+
+    // LocalStorage'a da kaydet (yedek)
     const linkData = {
         id: linkId,
         trackingId: trackingId,

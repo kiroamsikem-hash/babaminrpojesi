@@ -1,4 +1,4 @@
-// Vercel Serverless Function - Ziyaretçi verilerini getir
+// Vercel Serverless Function - Link oluştur
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
@@ -13,37 +13,34 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { trackingId } = req.query;
+    const { linkId, trackingId, title, redirectUrl } = req.body;
 
-    if (!trackingId) {
-      return res.status(400).json({ error: 'Missing trackingId' });
+    if (!linkId || !trackingId) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     // NeonDB bağlantısı
     const sql = neon(process.env.DATABASE_URL);
     
-    // Ziyaretleri çek
-    const visits = await sql`
-      SELECT visitor_data, created_at
-      FROM visits
-      WHERE tracking_id = ${trackingId}
-      ORDER BY created_at DESC
+    // Link'i kaydet
+    await sql`
+      INSERT INTO links (id, tracking_id, title, redirect_url, created_at)
+      VALUES (${linkId}, ${trackingId}, ${title || 'İsimsiz Link'}, ${redirectUrl || ''}, NOW())
     `;
     
     return res.status(200).json({ 
       success: true,
-      visits: visits.map(v => ({
-        ...v.visitor_data,
-        timestamp: v.created_at
-      }))
+      message: 'Link created successfully',
+      linkId,
+      trackingId
     });
   } catch (error) {
-    console.error('Error getting visits:', error);
+    console.error('Error creating link:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
